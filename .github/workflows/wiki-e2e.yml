@@ -31,7 +31,9 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # P2/P5 는 100+ curl 호출 → 배치/병렬화해도 LLM 오케스트레이션 라운드 포함 ~10분 +.
+    # 여유 둔 25분. 정상 종료 시 보통 3~5분.
+    timeout-minutes: 25
     # workflow_run 의 경우 트리거 워크플로가 성공했을 때만 실행. dispatch·schedule 은 항상.
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     steps:

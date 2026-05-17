@@ -11,6 +11,16 @@ You are running inside the `wiki-e2e` GitHub Actions workflow on a fresh checkou
 - `MAIN_DIR` — absolute path to the `main` checkout (the workflow working directory).
 - Git identity not required (read-only).
 
+## Performance constraint (read first)
+
+`curl` per-URL is the dominant cost. Batch aggressively:
+
+- For each predicate that needs HTTP checks, **collect every URL into a single newline-separated list**, then process it with one `xargs -P 8 -I {}` invocation (8-way parallel). Do not call `curl` once per URL in separate tool calls.
+- For grep-based predicates, run a single recursive `grep` across the whole `$WIKI_DIR` rather than per-file calls.
+- Avoid re-running the same `curl` more than once — reuse outputs.
+
+Total target: 3–5 minutes wall clock. Hard ceiling: 25 minutes (workflow timeout).
+
 ## Procedure
 
 Execute strictly in this order. Do not modify any file.
@@ -19,10 +29,13 @@ Execute strictly in this order. Do not modify any file.
 
 2. **Predicate P1 — wiki file present.** For each `f` in `MD_FILES`, check `[ -f "$WIKI_DIR/$f" ]`. Record pass / `fail: <f> missing from wiki clone`.
 
-3. **Predicate P2 — wiki page renders.** For each `f` in `MD_FILES`:
-   - `page = ${f%.md}` (strip the `.md` suffix)
-   - `curl -sI -o /dev/null -w "%{http_code}" "$WIKI_URL/$page"` → must be `200`
-   - Record pass / `fail: <page> returned <code>`.
+3. **Predicate P2 — wiki page renders.** Build a single URL list, batch with xargs:
+   ```bash
+   # in one bash invocation:
+   for f in $MD_FILES; do echo "$WIKI_URL/${f%.md}"; done \
+     | xargs -P 8 -I {} sh -c 'echo "$(curl -sI -o /dev/null -w "%{http_code}" "{}") {}"'
+   ```
+   Any line not starting with `200` is a fail.
 
 4. **Predicate P3 — link adapter applied.** Run, on the wiki clone only:
    `grep -rEn '\]\([^)/:#]+\.md(#[^)]*)?\)' "$WIKI_DIR"/*.md || true`
@@ -30,12 +43,19 @@ Execute strictly in this order. Do not modify any file.
 
 5. **Predicate P4 — EN/KO pair completeness.** For every `X.md` in `MD_FILES`, if `X.ko.md` is also in `MD_FILES`, both `$WIKI_URL/X` and `$WIKI_URL/X.ko` must have been HTTP 200 in P2. Record pass / `fail: <X.md> has KO entry but one of the pages did not render`.
 
-6. **Predicate P5 — internal link integrity.** For each wiki file in `$WIKI_DIR/*.md`:
-   - Extract every markdown link URL: `grep -oE '\]\(([^)]+)\)' <file>` → strip the surrounding `](` `)`.
-   - Skip URLs that begin with `http://`, `https://`, `mailto:`, `#`, or `/`.
-   - For each remaining URL, split off any `#anchor`. The remaining target is the wiki page slug.
-   - `curl -sI -o /dev/null -w "%{http_code}" "$WIKI_URL/<slug>"` → must be `200`.
-   - Record pass / `fail: in <file>, link to <slug> returned <code>`.
+6. **Predicate P5 — internal link integrity.** Aggregate and batch:
+   ```bash
+   # in one bash invocation, collect unique relative link targets across all wiki files:
+   grep -hoE '\]\([^)]+\)' "$WIKI_DIR"/*.md \
+     | sed -E 's|^\]\((.+)\)$|\1|' \
+     | grep -vE '^(https?:|mailto:|#|/)' \
+     | sed -E 's/#.*$//' \
+     | sort -u \
+     > /tmp/wiki-e2e-links.txt
+   sed "s|^|$WIKI_URL/|" /tmp/wiki-e2e-links.txt \
+     | xargs -P 8 -I {} sh -c 'echo "$(curl -sI -o /dev/null -w "%{http_code}" "{}") {}"'
+   ```
+   Any line not starting with `200` is a fail. Report at most 20 failures verbatim plus the total fail count.
 
 7. **Compose report.** Write to `$GITHUB_STEP_SUMMARY`:
 
