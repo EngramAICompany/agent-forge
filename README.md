@@ -1,39 +1,40 @@
+**[English](README.md)** · [한국어](README.ko.md)
+
 # agent-forge
 
-agent task 문서를 *에이전트가 직접* 생성·갱신·동기화하는 자기증명적(self-referential) 프로젝트.
-"에이전트에게 task를 위임하는 원칙"을 정의하는 동시에, *그 원칙을 적용해 자기 자신의 문서를 관리하는 에이전트*들을 모은다.
+A self-referential project where agent task documents are *created, updated, and synchronized by agents themselves*. The repo defines the principles for delegating tasks to agents — and collects the agents that apply those principles to manage the docs you are reading.
 
-진입점: **[Home.md](Home.md)** — 전체 목차와 위상.
+Entry point: **[Home.md](Home.md)** — full table of contents and topology.
 
-## 정체성
+## Identity
 
-- **forge** — 이 리포의 agent task docs는 사람이 *유지보수하는 대상*이 아니라 에이전트가 *생성·정정·동기화하는 대상*이다.
-- **self-referential** — 모든 forge 모듈은 이 리포의 [`task_principle.md`](task_principle.md)·[`agent_skill_principle.md`](agent_skill_principle.md)을 *읽고* 그 절차에 따라 동작한다. 외부 룰북 없음 — 리포 그 자체가 사양이자 실행체.
-- **bootstrap** — 사람이 쓴 원칙(seed) → 에이전트가 그 원칙을 적용해 문서를 forge → 늘어난 문서가 다음 에이전트의 사양이 된다.
+- **forge** — Agent task docs in this repo are not artifacts that humans *maintain*; they are artifacts that agents *produce, correct, and synchronize*.
+- **self-referential** — Every forge module *reads* this repo's [`task_principle.md`](task_principle.md) and [`agent_skill_principle.md`](agent_skill_principle.md) and acts according to those procedures. There is no external rulebook — the repo itself is both the specification and the runtime.
+- **bootstrap** — Human-authored principles (seed) → agents apply those principles to forge new docs → the expanded doc set becomes the specification for the next agent.
 
-## 원칙 (seed)
+## Principles (seed)
 
-이후 모든 forge 모듈이 따르는 사양. 사람이 쓰는 마지막 계층.
+The specification every forge module follows. The last layer humans write.
 
-- [task_principle.md](task_principle.md) — 임의 task 위임 원칙 (역할/범위, 계약, composition, 안티패턴)
-- [agent_skill_principle.md](agent_skill_principle.md) — 에이전트·스킬셋 작성 3원칙 (simplicity / modularity / composition)
+- [task_principle.md](task_principle.md) — General principles for delegating arbitrary tasks to agents (role/scope, contract, composition, anti-patterns)
+- [agent_skill_principle.md](agent_skill_principle.md) — Three core principles for authoring agents and skill sets (simplicity / modularity / composition)
 
-## forge 모듈 (self-referential agents)
+## Forge modules (self-referential agents)
 
-리포의 문서·메타데이터를 직접 손대는 에이전트들.
+Agents that directly act on this repo's docs and metadata.
 
-- [wiki_sync.md](wiki_sync.md) — main 브랜치의 `.md`를 같은 리포의 wiki에 단방향 미러링. **현재 가동 중인 첫 forge 모듈.**
-- *(예정)* 문서 자동 작성·링크 정합성 점검·원칙 위반 검출·`MD_FILES` 명단 자동 갱신 등.
+- [wiki_sync.md](wiki_sync.md) — One-way mirror of main-branch `.md` files into this repo's wiki. **The first forge module currently in operation.**
+- *(planned)* automatic doc authoring, link-integrity checks, principle-violation detection, automatic `MD_FILES` list maintenance, etc.
 
-## 적용 사례 — 외부 task 위임 (UX / E2E / CI 파이프라인)
+## Applied example — external task delegation (UX / E2E / CI pipeline)
 
-위 원칙을 *이 리포 바깥의 task*에 적용한 설계 예시.
+The same principles applied to tasks *outside* this repo.
 
-- [UX_E2E_CI_plan.md](UX_E2E_CI_plan.md) — 파이프라인 개요
-- [ux_agent.md](ux_agent.md) — UI/UX 문서 동기화
-- [test_agent.md](test_agent.md) — E2E 스크립트 유지·실행
-- [ci_trigger.md](ci_trigger.md) — 이벤트 라우팅·관측
+- [UX_E2E_CI_plan.md](UX_E2E_CI_plan.md) — Pipeline overview
+- [ux_agent.md](ux_agent.md) — UI/UX doc synchronization
+- [test_agent.md](test_agent.md) — E2E script maintenance and execution
+- [ci_trigger.md](ci_trigger.md) — Event routing and observation
 
 ## Wiki
 
-같은 내용을 GitHub Wiki에서도 열람 가능: [Wiki](https://github.com/EngramAICompany/agent-forge/wiki) — `wiki_sync` 모듈이 자동 미러링.
+Same content is also browsable on the GitHub Wiki: [Wiki](https://github.com/EngramAICompany/agent-forge/wiki) — mirrored automatically by the `wiki_sync` module.

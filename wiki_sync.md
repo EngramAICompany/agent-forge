@@ -1,39 +1,41 @@
-[← Home](Home.md) · [원칙](task_principle.md) · [ux_agent](ux_agent.md) · [test_agent](test_agent.md) · [ci_trigger](ci_trigger.md)
+**[English](wiki_sync.md)** · [한국어](wiki_sync.ko.md)
+
+[← Home](Home.md) · [Principles](task_principle.md) · [ux_agent](ux_agent.md) · [test_agent](test_agent.md) · [ci_trigger](ci_trigger.md)
 
 # Wiki sync
 
-CI에서 호출되는 Claude Code 기반 self-referential 에이전트 task. 이 리포 main 브랜치의 `.md`를 같은 리포의 wiki에 단방향으로 미러링한다.
+A self-referential Claude Code agent task invoked from CI. Mirrors `.md` files on this repo's main branch into this repo's wiki, one-way.
 
-## 역할
+## Role
 
-이 리포 main 브랜치의 `.md` 문서를 같은 리포의 wiki에 단방향 덮어쓰기 미러링한다. main이 SSOT, wiki는 사본.
+Mirrors the `.md` documents on this repo's main branch into this repo's wiki, as a one-way overwrite. `main` is the SSOT; the wiki is a copy.
 
-## 범위
+## Scope
 
 - **in-scope**:
-  - 명시된 파일 목록(`MD_FILES`)을 main → wiki master로 단방향 push.
-  - main과 wiki가 byte-identical일 때 no-op (lazy).
-  - 결정론적 절차만 수행 — diff·cp·git 명령으로 표현 가능한 행위로 한정.
+  - Push the named file list (`MD_FILES`) from main → wiki master, one-way.
+  - No-op when main and wiki are byte-identical (lazy).
+  - Deterministic procedure only — behavior must be expressible via `diff` / `cp` / `git` commands.
 - **out-of-scope**:
-  - wiki → main 역방향 sync.
-  - wiki에서의 수동 편집 보존 — 다음 sync에서 *항상 덮어쓴다*.
-  - 의미적 동등성 추론·whitespace 정리·linter·자동 리팩터링·재작성·번역.
-  - `MD_FILES` 목록의 자동 갱신(사람 책임).
-  - 이 리포 외 어떤 원격도 일절 손대지 않음.
-  - main 브랜치의 수정(권한 차원에서 차단).
-- **위반 시**:
-  - 명단 외 파일 발견 → 무시.
-  - 외부 원격이 필요하다고 판단되는 상황 → 즉시 중단 + escalate.
-  - main 쓰기 시도 → 권한 거부로 자동 실패 (정책의 기술적 보강).
-  - 명령으로 표현되지 않은 행위(의미적 판단) → 절차 위반, 중단.
+  - Reverse sync from wiki → main.
+  - Preserving manual edits made in the wiki — the next sync *always overwrites them*.
+  - Inference of semantic equivalence, whitespace normalization, linting, automated refactor, rewriting, translation.
+  - Automatic maintenance of the `MD_FILES` list (human responsibility).
+  - Touching any remote other than this repo.
+  - Modifying the main branch (blocked at the permission layer).
+- **on violation**:
+  - File outside the list discovered → ignore.
+  - A situation appearing to require an external remote → halt immediately + escalate.
+  - Attempt to write to main → denied by permissions → automatic failure (technical reinforcement of the policy).
+  - An action not expressible as one of the commands above (i.e., semantic judgment) → procedure violation, halt.
 
-## 절차
+## Procedure
 
-결정론적 명령어 시퀀스. 에이전트는 이 절차의 *인터프리터*이며, 추가 판단을 도입하지 않는다.
+A deterministic command sequence. The agent is the *interpreter* of this procedure and introduces no additional judgment.
 
 ```
 inputs:
-    SOURCE = checkout of this repo at triggering commit  (read-only)
+    SOURCE = checkout of this repo at the triggering commit  (read-only)
     WIKI   = working clone of this repo's wiki, branch master  (writable)
     MSG    = commit message for the wiki commit
 
@@ -61,54 +63,64 @@ on out-of-scope situation (e.g., a step requires touching SOURCE,
     log + escalate; exit 1
 ```
 
-`MD_FILES` 명단은 [구현](#구현) 섹션에 적힌다.
+The `MD_FILES` list lives in the [Implementation](#implementation) section.
 
-## 계약
+## Contract
 
 - **in**:
-  - `SOURCE`: 이 리포 main HEAD의 `.md` 파일 (MD_FILES)
-  - `WIKI`: 이 리포 wiki master의 working clone
-  - `MSG`: commit message (호출 layer가 전달)
+  - `SOURCE`: `.md` files at this repo's main HEAD (MD_FILES)
+  - `WIKI`: working clone of this repo's wiki master
+  - `MSG`: commit message (provided by the caller layer)
 - **out**:
-  - wiki master HEAD의 명시된 `.md` 파일 = SOURCE의 동일 파일 (blob 일치)
-  - stdout/log: 단계별 결과 (`skip` / `pushed` / `failed`) 와 에러 시 stderr
-  - exit code: 0(성공·no-op) / 1(실패)
-- **event**: 없음 — trigger는 호출 layer 책임 (`.github/workflows/wiki-sync.yml`이 `push: branches:[main]` + `workflow_dispatch`로 호출).
+  - Named `.md` files at the wiki master HEAD = the same files in SOURCE (blob-identical)
+  - stdout / log: per-step result (`skip` / `pushed` / `failed`) and stderr on error
+  - exit code: 0 (success or no-op) / 1 (failure)
+- **event**: none — triggering is the caller's responsibility (`.github/workflows/wiki-sync.yml` invokes it on `push: branches:[main]` + `workflow_dispatch`).
 - **failure**:
-  - 파일 누락 → exit 1
-  - clone/push 실패 → git exit code 그대로 전파
-  - main 쓰기 시도 → 권한 거부 → exit 1
-- **success**: 재실행 시 `no changes — skip` (멱등 도달).
+  - File missing → exit 1
+  - clone / push failure → propagate the git exit code as-is
+  - Attempt to write main → permission denied → exit 1
+- **success**: on re-run, `no changes — skip` (idempotent fixpoint).
 
-## 정책
+## Policy
 
-- **자기참조 (self-referential)**: 이 task는 매 실행마다 이 리포의 [`task_principle.md`](task_principle.md)·[`agent_skill_principle.md`](agent_skill_principle.md)·`wiki_sync.md`(자신)를 *읽고* 그 절차에 충실히 따른다. 외부 룰북 없음.
-- **단방향 덮어쓰기**: wiki에서의 수동 편집은 보존되지 않는다. 변경은 항상 main에 commit하라. 이를 어기는 사람의 wiki 편집은 다음 sync에서 사라지는 것이 *정상 동작*이다.
-- **자체 변경 금지**: 에이전트는 `task_principle.md`·`agent_skill_principle.md`·`wiki_sync.md`·자기 prompt(`.github/agents/wiki-sync.prompt.md`)·workflow yaml을 *읽기만* 한다. 수정 시도는 절차 위반.
-- **결정론**: 동일 입력(SOURCE, WIKI 상태) → 동일 결과. LLM이 호출되더라도 그 출력은 위 절차의 한 단계여야 한다. 절차에 적히지 않은 "친절한" 보정은 금지.
+- **Self-referential**: every run *reads* this repo's [`task_principle.md`](task_principle.md), [`agent_skill_principle.md`](agent_skill_principle.md), and `wiki_sync.md` (itself), and follows the procedure faithfully. No external rulebook.
+- **One-way overwrite**: manual edits in the wiki are not preserved. Always commit changes to main. A person's wiki edit disappearing on the next sync is *normal behavior*.
+- **No self-modification**: the agent only *reads* `task_principle.md`, `agent_skill_principle.md`, `wiki_sync.md`, its own prompt (`.github/agents/wiki-sync.prompt.md`), and the workflow YAML. Any modification attempt is a procedure violation.
+- **Determinism**: same input (SOURCE, WIKI state) → same result. Even when an LLM is invoked, its output must be a step of the procedure above. "Helpful" out-of-procedure corrections are forbidden.
 
-## 관측
+## Observation
 
-- **무효 호출률** = (`no changes — skip` 종료 실행 수) / (전체 실행 수). lazy 사전 게이트가 LLM 호출 자체를 막아 0에 가까울수록 좋다 *— 단, 사전 게이트가 통과한 실행 중에서는 1이 정상*.
-- **drift 지연** = (main 갱신 commit 시각) → (다음 sync 성공 시각) 간격. trigger 적절성 지표.
-- **에이전트 오작동률** = (절차 외 변경을 시도했거나 자체 변경을 시도한 실행 수) / (전체 실행 수). **0이어야 함**. 0 초과 시 prompt·정책 강화 필요.
+- **Wasted-call rate** = (runs ending in `no changes — skip`) / (all runs). The lazy pre-gate blocks LLM invocations themselves, so closer to 0 is better — *but among runs that pass the pre-gate, 1 is normal*.
+- **Drift lag** = interval from (main update commit time) → (next successful sync time). A signal for trigger appropriateness.
+- **Agent misbehavior rate** = (runs that attempted out-of-procedure changes or self-modification) / (all runs). **Must be 0**. If > 0, strengthen prompt or policy.
 
-## 구현
+## Implementation
 
 - **`MD_FILES`**:
-  - `Home.md`
-  - `task_principle.md`
-  - `agent_skill_principle.md`
-  - `wiki_sync.md`
-  - `ux_agent.md`
-  - `test_agent.md`
-  - `ci_trigger.md`
-  - `UX_E2E_CI_plan.md`
-- **trigger**: [`.github/workflows/wiki-sync.yml`](.github/workflows/wiki-sync.yml) — `push: branches:[main]` (paths 필터로 .md / workflow / prompt 변경에 한정) + `workflow_dispatch`.
-- **brief**: [`.github/agents/wiki-sync.prompt.md`](.github/agents/wiki-sync.prompt.md) — 자기참조 진입점. 에이전트에게 *이 파일을 읽으라*고만 지시.
-- **권한**:
-  - workflow의 `permissions: contents: read` — main 쓰기 차단 (단방향 정책의 기술적 강제).
-  - wiki push: `GITHUB_TOKEN` 또는 별도 `WIKI_PUSH_TOKEN`.
-  - 에이전트 도구 화이트리스트: `Read`, `Bash(git:*)`, `Bash(cp:*)`, `Bash(diff:*)`. `Edit`·`Write`는 `$WIKI_DIR` 내부에만.
+  - English (canonical):
+    - `Home.md`
+    - `task_principle.md`
+    - `agent_skill_principle.md`
+    - `wiki_sync.md`
+    - `ux_agent.md`
+    - `test_agent.md`
+    - `ci_trigger.md`
+    - `UX_E2E_CI_plan.md`
+  - Korean translations:
+    - `Home.ko.md`
+    - `task_principle.ko.md`
+    - `agent_skill_principle.ko.md`
+    - `wiki_sync.ko.md`
+    - `ux_agent.ko.md`
+    - `test_agent.ko.md`
+    - `ci_trigger.ko.md`
+    - `UX_E2E_CI_plan.ko.md`
+- **trigger**: [`.github/workflows/wiki-sync.yml`](.github/workflows/wiki-sync.yml) — `push: branches:[main]` (path filter limited to .md / workflow / prompt changes) + `workflow_dispatch`.
+- **brief**: [`.github/agents/wiki-sync.prompt.md`](.github/agents/wiki-sync.prompt.md) — self-referential entry point. Tells the agent only to *read this file*.
+- **permissions**:
+  - workflow `permissions: contents: read` — blocks writing main (technical enforcement of the one-way policy).
+  - wiki push: `GITHUB_TOKEN` or a separate `WIKI_PUSH_TOKEN`.
+  - Agent tool whitelist: `Read`, `Bash(git:*)`, `Bash(cp:*)`, `Bash(diff:*)`. `Edit` / `Write` only within `$WIKI_DIR`.
 
-이 모듈이 따르는 일반 원칙: [임의 task 위임 원칙](task_principle.md) — 특히 *역할·범위*·*idempotency*·*lazy evaluation*·*fail loud*.
+General principle this module follows: [Task delegation principles](task_principle.md) — especially *role / scope*, *idempotency*, *lazy evaluation*, *fail loud*.

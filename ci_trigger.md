@@ -1,32 +1,34 @@
-[← Home](Home.md) · [원칙](task_principle.md) · [ux_agent](ux_agent.md) · [test_agent](test_agent.md) · [pipeline](UX_E2E_CI_plan.md)
+**[English](ci_trigger.md)** · [한국어](ci_trigger.ko.md)
 
-# CI 트리거
+[← Home](Home.md) · [Principles](task_principle.md) · [ux_agent](ux_agent.md) · [test_agent](test_agent.md) · [pipeline](UX_E2E_CI_plan.md)
 
-## 역할
+# CI trigger
 
-정의된 이벤트 신호를 받아 적절한 에이전트로 라우팅한다.
+## Role
 
-## 범위
+Receives defined event signals and routes them to the appropriate agent.
 
-- **in-scope**: 정의된 이벤트(`E2E fail`, `doc_updated` 등) 매핑 라우팅, 무효 호출률 측정·로깅.
-- **out-of-scope**: 실제 작업 수행(각 에이전트의 몫), 새 이벤트 정의·발신, 에이전트 내부 로직 수정, 실패 자동 복구.
-- **위반 시**: 미정의 신호 → 로그 + escalate. 매핑되지 않은 이벤트를 추측으로 라우팅 금지.
+## Scope
 
-## 원칙
+- **in-scope**: routing defined events (`E2E fail`, `doc_updated`, etc.) by mapping; measuring and logging wasted-call rate.
+- **out-of-scope**: performing the actual work (each agent's job); defining or emitting new events; modifying agent internals; auto-recovery from failures.
+- **on violation**: undefined signal → log + escalate. Never guess-route an unmapped event.
 
-lazy evaluate. 변경은 실패 신호로 감지.
+## Principle
 
-## 규칙
+Lazy evaluation. Detect changes via failure signals.
 
-- E2E fail → [test_agent](test_agent.md)가 원인 분류 → [ux_agent](ux_agent.md) 또는 reject
-- `doc_updated` → [test_agent](test_agent.md) 동시 갱신
+## Rules
 
-## 실패
+- `E2E fail` → [test_agent](test_agent.md) classifies cause → [ux_agent](ux_agent.md) or reject
+- `doc_updated` → [test_agent](test_agent.md) updates concurrently
 
-미정의 신호 → 로그 + escalate.
+## Failure
 
-## 관측
+Undefined signal → log + escalate.
 
-무효 호출률 = (변경 없음 종료) / (전체 호출). 로그로 측정.
+## Observation
 
-이 모듈이 따르는 일반 원칙: [임의 task 위임 원칙](task_principle.md) — 특히 *lazy evaluation*·*observability* 항목.
+Wasted-call rate = (runs ending in "no change") / (all runs). Measured via logs.
+
+General principle this module follows: [Task delegation principles](task_principle.md) — especially the *lazy evaluation* and *observability* clauses.

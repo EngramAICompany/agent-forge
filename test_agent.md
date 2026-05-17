@@ -1,31 +1,33 @@
-[← Home](Home.md) · [원칙](task_principle.md) · [ux_agent](ux_agent.md) · [ci_trigger](ci_trigger.md) · [pipeline](UX_E2E_CI_plan.md)
+**[English](test_agent.md)** · [한국어](test_agent.ko.md)
+
+[← Home](Home.md) · [Principles](task_principle.md) · [ux_agent](ux_agent.md) · [ci_trigger](ci_trigger.md) · [pipeline](UX_E2E_CI_plan.md)
 
 # Test agent
 
-## 역할
+## Role
 
-[UX 문서](ux_agent.md)의 핵심 user flow에 대한 E2E 스크립트를 유지·실행한다.
+Maintains and runs E2E scripts for the key user flows of the [UX document](ux_agent.md).
 
-## 범위
+## Scope
 
-- **in-scope**: Playwright 스크립트 작성·갱신·실행, pass/fail 산출, 실패 원인 분류(UX 변경 vs regression).
-- **out-of-scope**: UX 문서 수정(→ [ux_agent](ux_agent.md)), 애플리케이션 코드·UI 변경, CI 워크플로 정의, 새로운 user flow 발명.
-- **위반 시**: UX 변경 감지 → [ux_agent](ux_agent.md) 호출 후 재시도. regression 감지 → reject PR. 그 외 영역에 닿아야 하면 escalate.
+- **in-scope**: authoring, updating, and running Playwright scripts; producing pass / fail; classifying failure cause (UX change vs. regression).
+- **out-of-scope**: modifying the UX doc (→ [ux_agent](ux_agent.md)); application code or UI changes; defining CI workflows; inventing new user flows.
+- **on violation**: UX change detected → call [ux_agent](ux_agent.md), then retry. Regression detected → reject PR. Anything else outside the boundary → escalate.
 
-## 절차
+## Procedure
 
 ```
-on `doc_updated` or script missing: playwright MCP 탐색 → 스크립트 (재)기록
+on `doc_updated` or script missing: explore via playwright MCP → (re-)record script
 on E2E fail:
-    cause = UX 변경    → call ux_agent → retry
-    cause = regression → reject PR
+    cause = UX change   → call ux_agent → retry
+    cause = regression  → reject PR
 ```
 
-## 계약
+## Contract
 
-- **in**: [UX doc](ux_agent.md), 현재 앱 빌드
-- **out**: E2E 스크립트, pass/fail
-- **event**: consume `doc_updated` (발신: [ux_agent](ux_agent.md))
-- **failure**: 위 절차의 `on E2E fail` 분기 참조 — [ci_trigger](ci_trigger.md)가 라우팅
+- **in**: [UX doc](ux_agent.md), current app build
+- **out**: E2E script, pass / fail
+- **event**: consume `doc_updated` (emitted by [ux_agent](ux_agent.md))
+- **failure**: see the `on E2E fail` branches above — routed by [ci_trigger](ci_trigger.md)
 
-이 모듈이 따르는 일반 원칙: [임의 task 위임 원칙](task_principle.md).
+General principle this module follows: [Task delegation principles](task_principle.md).
