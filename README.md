@@ -21,10 +21,16 @@ The specification every forge module follows. The last layer humans write.
 
 ## Forge modules (self-referential agents)
 
-Agents that directly act on this repo's docs and metadata.
+Agents that will directly act on this repo's docs and metadata. *None implemented yet — planned:*
 
-- [wiki_sync.md](wiki_sync.md) — One-way mirror of main-branch `.md` files into this repo's wiki. **The first forge module currently in operation.**
-- *(planned)* automatic doc authoring, link-integrity checks, principle-violation detection, automatic `MD_FILES` list maintenance, etc.
+- automatic doc authoring
+- link-integrity checks
+- principle-violation detection
+- automatic `MD_FILES` list maintenance
+
+## Infrastructure
+
+- [wiki_sync.md](wiki_sync.md) — Deterministic CI step that mirrors main-branch `.md` files into this repo's wiki. Pure bash, no LLM in the loop — the procedure has zero decision space, so it is classified as infrastructure rather than a forge module.
 
 ## Applied example — external task delegation (UX / E2E / CI pipeline)
 
@@ -37,4 +43,4 @@ The same principles applied to tasks *outside* this repo.
 
 ## Wiki
 
-Same content is also browsable on the GitHub Wiki: [Wiki](https://github.com/EngramAICompany/agent-forge/wiki) — mirrored automatically by the `wiki_sync` module.
+Same content is also browsable on the GitHub Wiki: [Wiki](https://github.com/EngramAICompany/agent-forge/wiki) — mirrored automatically by the `wiki_sync` CI step.

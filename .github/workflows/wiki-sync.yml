@@ -1,29 +1,27 @@
 name: wiki-sync
 
-# main → wiki 단방향 동기화. 실제 동기화 로직은 워크플로에 두지 않고
-# 리포 내 wiki_sync.md + 에이전트 prompt에 위임한다 (self-referential).
+# main → wiki 단방향 동기화. 결정론적 bash로 구현 (LLM 없음).
 #
 # 이 yaml의 책임:
 #   - trigger 정의
 #   - source/wiki 체크아웃
-#   - lazy gate (diff 없으면 LLM 호출조차 안 함)
-#   - Claude Code 에이전트 호출 (안전한 도구 화이트리스트)
-#   - decision log를 job summary로 노출
-# 이 yaml의 비책임: 어떤 파일을 동기화할지·어떻게 reconcile할지 — 그건 wiki_sync.md.
+#   - lazy gate (diff 없으면 sync 스킵)
+#   - overlay + commit + push
+#   - 결정 로그를 job summary로 노출
+# 이 yaml의 비책임:
+#   - MD_FILES와 wiki_sync.md 간 일치 (사람 책임).
 
 on:
   push:
     branches: [main]
     paths:
       - '*.md'
-      - 'wiki_sync.md'
-      - '.github/agents/wiki-sync.prompt.md'
       - '.github/workflows/wiki-sync.yml'
   workflow_dispatch:
 
-# main 브랜치에 대한 쓰기 금지 (단방향 정책의 기술적 강제)
+# wiki push에 contents: write 필요. 이 워크플로는 main을 절대 건드리지 않음(아래 스크립트가 작업 디렉터리를 wiki/로만 한정).
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: wiki-sync
@@ -32,31 +30,30 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - name: checkout main (source, read-only)
+      - name: checkout main (source)
         uses: actions/checkout@v4
         with:
           path: source
 
       - name: clone wiki (writable)
-        env:
-          WIKI_PUSH_TOKEN: ${{ secrets.WIKI_PUSH_TOKEN || github.token }}
         run: |
           set -euo pipefail
           git config --global user.name  "wiki-sync-bot"
           git config --global user.email "wiki-sync-bot@users.noreply.github.com"
           git clone --quiet --depth=1 \
-            "https://x-access-token:${WIKI_PUSH_TOKEN}@github.com/${{ github.repository }}.wiki.git" \
+            "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.wiki.git" \
             wiki
 
-      - name: lazy gate (skip if no diff)
-        id: gate
+      - name: sync (validate + overlay + commit + push)
+        id: sync
         shell: bash
+        env:
+          COMMIT_MSG: "sync: mirror main → wiki (${{ github.sha }})"
         run: |
           set -euo pipefail
-          # NOTE: MD_FILES는 wiki_sync.md의 ## Implementation 섹션과 정확히 일치해야 한다.
-          # 여기 적힌 목록은 단지 "사전 게이트"용이며, 실제 sync는 에이전트가 wiki_sync.md를 읽어 수행.
+          # MD_FILES는 wiki_sync.md의 ## Implementation 섹션과 정확히 일치해야 한다 (사람 책임).
           MD_FILES=(
             Home.md
             task_principle.md
@@ -75,66 +72,50 @@ jobs:
             ci_trigger.ko.md
             UX_E2E_CI_plan.ko.md
           )
-          NEEDS_SYNC=false
+
+          # 1) validate — source에 명단의 모든 파일이 존재해야 함.
           MISSING=()
           for f in "${MD_FILES[@]}"; do
-            if [ ! -f "source/$f" ]; then
-              MISSING+=("$f")
-              continue
-            fi
-            if [ ! -f "wiki/$f" ] || ! diff -q "source/$f" "wiki/$f" > /dev/null 2>&1; then
-              NEEDS_SYNC=true
-            fi
+            [ -f "source/$f" ] || MISSING+=("$f")
           done
           if [ ${#MISSING[@]} -gt 0 ]; then
-            echo "::error::Missing in source: ${MISSING[*]}"
+            echo "::error::missing in source: ${MISSING[*]}"
             exit 1
           fi
-          echo "needs_sync=$NEEDS_SYNC" >> "$GITHUB_OUTPUT"
-          echo "Needs sync: $NEEDS_SYNC"
 
-      - name: invoke Claude Code agent
-        if: steps.gate.outputs.needs_sync == 'true'
-        env:
-          # 구독플랜(Pro/Max) OAuth 토큰. `claude setup-token`으로 발급, 1년 유효.
-          # CLI는 이 변수를 우선 사용해 인증함 (ANTHROPIC_API_KEY 불필요).
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          SOURCE_DIR: ${{ github.workspace }}/source
-          WIKI_DIR: ${{ github.workspace }}/wiki
-          COMMIT_MSG: "sync: mirror main → wiki (${{ github.sha }})"
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Claude Code CLI를 비대화형(print) 모드로 호출.
-          # prompt는 stdin으로 전달 (--print는 stdin을 prompt로 사용).
-          # 도구는 git/cp/diff에 한정 (Edit/Write는 prompt 정책으로도 차단).
-          cat source/.github/agents/wiki-sync.prompt.md | npx -y @anthropic-ai/claude-code \
-            --print \
-            --allowed-tools "Read,Bash(git:*),Bash(cp:*),Bash(diff:*)" \
-            --max-turns 30 \
-            2>&1 | tee /tmp/wiki-sync.log
+          # 2) overlay — source → wiki.
+          for f in "${MD_FILES[@]}"; do
+            cp "source/$f" "wiki/$f"
+          done
 
-      - name: decision log → job summary
-        if: always() && steps.gate.outputs.needs_sync == 'true'
+          # 3) stage + 4) lazy gate.
+          cd wiki
+          git add -- "${MD_FILES[@]}"
+          if git diff --cached --quiet; then
+            echo "result=skip" >> "$GITHUB_OUTPUT"
+            echo "RESULT: skip (no changes)"
+            exit 0
+          fi
+
+          # 5) commit + 6) push.
+          git commit -m "$COMMIT_MSG"
+          git push origin master
+          SHA=$(git rev-parse HEAD)
+          echo "result=pushed" >> "$GITHUB_OUTPUT"
+          echo "wiki_sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "RESULT: pushed $SHA"
+
+      - name: job summary
+        if: always()
         shell: bash
         run: |
           {
-            echo "## Wiki Sync — Decision Log"
+            echo "## Wiki Sync"
             echo ""
             echo "- Trigger: \`${{ github.event_name }}\`"
-            echo "- Commit:  \`${{ github.sha }}\`"
-            echo ""
-            echo '```'
-            cat /tmp/wiki-sync.log 2>/dev/null || echo "(no log)"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: report skip (lazy)
-        if: steps.gate.outputs.needs_sync != 'true'
-        shell: bash
-        run: |
-          {
-            echo "## Wiki Sync — Skipped"
-            echo ""
-            echo "source and wiki are byte-identical for all MD_FILES. No LLM call made."
+            echo "- Source commit: \`${{ github.sha }}\`"
+            echo "- Result: \`${{ steps.sync.outputs.result || 'failed' }}\`"
+            if [ -n "${{ steps.sync.outputs.wiki_sha }}" ]; then
+              echo "- Wiki HEAD: \`${{ steps.sync.outputs.wiki_sha }}\`"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"

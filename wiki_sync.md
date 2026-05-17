@@ -4,7 +4,7 @@
 
 # Wiki sync
 
-A self-referential Claude Code agent task invoked from CI. Mirrors `.md` files on this repo's main branch into this repo's wiki, one-way.
+A deterministic CI step that mirrors `.md` files on this repo's main branch into this repo's wiki, one-way. Pure bash — no LLM in the loop.
 
 ## Role
 
@@ -15,89 +15,68 @@ Mirrors the `.md` documents on this repo's main branch into this repo's wiki, as
 - **in-scope**:
   - Push the named file list (`MD_FILES`) from main → wiki master, one-way.
   - No-op when main and wiki are byte-identical (lazy).
-  - Deterministic procedure only — behavior must be expressible via `diff` / `cp` / `git` commands.
 - **out-of-scope**:
   - Reverse sync from wiki → main.
   - Preserving manual edits made in the wiki — the next sync *always overwrites them*.
-  - Inference of semantic equivalence, whitespace normalization, linting, automated refactor, rewriting, translation.
-  - Automatic maintenance of the `MD_FILES` list (human responsibility).
+  - Any semantic transformation (whitespace normalization, linting, refactor, translation).
+  - Automatic maintenance of the `MD_FILES` list (human responsibility — must match between `wiki_sync.md` and the workflow yaml).
   - Touching any remote other than this repo.
-  - Modifying the main branch (blocked at the permission layer).
+  - Modifying the main branch.
 - **on violation**:
   - File outside the list discovered → ignore.
-  - A situation appearing to require an external remote → halt immediately + escalate.
-  - Attempt to write to main → denied by permissions → automatic failure (technical reinforcement of the policy).
-  - An action not expressible as one of the commands above (i.e., semantic judgment) → procedure violation, halt.
+  - Source file missing → exit 1 (fail loud).
 
 ## Procedure
 
-A deterministic command sequence. The agent is the *interpreter* of this procedure and introduces no additional judgment.
-
 ```
 inputs:
-    SOURCE = checkout of this repo at the triggering commit  (read-only)
-    WIKI   = working clone of this repo's wiki, branch master  (writable)
-    MSG    = commit message for the wiki commit
+    source/ = checkout of this repo at the triggering commit  (read-only by convention)
+    wiki/   = working clone of this repo's wiki, branch master  (writable)
+    MSG     = commit message for the wiki commit
 
 1. validate:
        for f in MD_FILES:
-           assert exists(SOURCE/f)  else exit 1
+           assert exists(source/f)  else exit 1
 2. overlay:
        for f in MD_FILES:
-           cp SOURCE/f WIKI/f
+           cp source/f wiki/f
 3. stage:
-       cd WIKI
+       cd wiki
        git add -- MD_FILES
 4. lazy gate:
-       if `git diff --cached --quiet`:
-           log "no changes — skip"; exit 0
+       if git diff --cached --quiet:
+           log "RESULT: skip (no changes)"; exit 0
 5. commit:
        git commit -m MSG
 6. push:
        git push origin master
-
-on any non-zero exit during steps 5–6:
-    log error; exit 1
-on out-of-scope situation (e.g., a step requires touching SOURCE,
-    or an action is not expressible as one of the commands above):
-    log + escalate; exit 1
+       log "RESULT: pushed <wiki HEAD>"
 ```
-
-The `MD_FILES` list lives in the [Implementation](#implementation) section.
 
 ## Contract
 
 - **in**:
-  - `SOURCE`: `.md` files at this repo's main HEAD (MD_FILES)
-  - `WIKI`: working clone of this repo's wiki master
-  - `MSG`: commit message (provided by the caller layer)
+  - `source/`: `.md` files at this repo's main HEAD (MD_FILES)
+  - `wiki/`: working clone of this repo's wiki master
+  - `MSG`: commit message constructed by the workflow
 - **out**:
-  - Named `.md` files at the wiki master HEAD = the same files in SOURCE (blob-identical)
-  - stdout / log: per-step result (`skip` / `pushed` / `failed`) and stderr on error
+  - Named `.md` files at the wiki master HEAD = the same files in source (blob-identical)
+  - Per-step log line: `RESULT: skip (no changes)` / `RESULT: pushed <sha>` / failure annotation
   - exit code: 0 (success or no-op) / 1 (failure)
-- **event**: none — triggering is the caller's responsibility (`.github/workflows/wiki-sync.yml` invokes it on `push: branches:[main]` + `workflow_dispatch`).
+- **event**: none — triggering is the workflow's responsibility (`push: branches:[main]` with a path filter + `workflow_dispatch`).
 - **failure**:
   - File missing → exit 1
-  - clone / push failure → propagate the git exit code as-is
-  - Attempt to write main → permission denied → exit 1
-- **success**: on re-run, `no changes — skip` (idempotent fixpoint).
-
-## Policy
-
-- **Self-referential**: every run *reads* this repo's [`task_principle.md`](task_principle.md), [`agent_skill_principle.md`](agent_skill_principle.md), and `wiki_sync.md` (itself), and follows the procedure faithfully. No external rulebook.
-- **One-way overwrite**: manual edits in the wiki are not preserved. Always commit changes to main. A person's wiki edit disappearing on the next sync is *normal behavior*.
-- **No self-modification**: the agent only *reads* `task_principle.md`, `agent_skill_principle.md`, `wiki_sync.md`, its own prompt (`.github/agents/wiki-sync.prompt.md`), and the workflow YAML. Any modification attempt is a procedure violation.
-- **Determinism**: same input (SOURCE, WIKI state) → same result. Even when an LLM is invoked, its output must be a step of the procedure above. "Helpful" out-of-procedure corrections are forbidden.
+  - clone or push failure → exit non-zero, propagating git's exit code
+- **success**: on re-run with no source changes, the lazy gate exits early with `skip` (idempotent fixpoint).
 
 ## Observation
 
-- **Wasted-call rate** = (runs ending in `no changes — skip`) / (all runs). The lazy pre-gate blocks LLM invocations themselves, so closer to 0 is better — *but among runs that pass the pre-gate, 1 is normal*.
-- **Drift lag** = interval from (main update commit time) → (next successful sync time). A signal for trigger appropriateness.
-- **Agent misbehavior rate** = (runs that attempted out-of-procedure changes or self-modification) / (all runs). **Must be 0**. If > 0, strengthen prompt or policy.
+- **Wasted-call rate** = (runs ending in `skip`) / (all runs). Lower means the path filter and trigger are well-tuned.
+- **Drift lag** = (main update commit time) → (next successful sync time).
 
 ## Implementation
 
-- **`MD_FILES`**:
+- **`MD_FILES`** (must match the workflow yaml exactly):
   - English (canonical):
     - `Home.md`
     - `task_principle.md`
@@ -116,11 +95,11 @@ The `MD_FILES` list lives in the [Implementation](#implementation) section.
     - `test_agent.ko.md`
     - `ci_trigger.ko.md`
     - `UX_E2E_CI_plan.ko.md`
-- **trigger**: [`.github/workflows/wiki-sync.yml`](.github/workflows/wiki-sync.yml) — `push: branches:[main]` (path filter limited to .md / workflow / prompt changes) + `workflow_dispatch`.
-- **brief**: [`.github/agents/wiki-sync.prompt.md`](.github/agents/wiki-sync.prompt.md) — self-referential entry point. Tells the agent only to *read this file*.
-- **permissions**:
-  - workflow `permissions: contents: read` — blocks writing main (technical enforcement of the one-way policy).
-  - wiki push: `GITHUB_TOKEN` or a separate `WIKI_PUSH_TOKEN`.
-  - Agent tool whitelist: `Read`, `Bash(git:*)`, `Bash(cp:*)`, `Bash(diff:*)`. `Edit` / `Write` only within `$WIKI_DIR`.
+- **trigger**: [`.github/workflows/wiki-sync.yml`](.github/workflows/wiki-sync.yml) — `push: branches:[main]` (path filter limited to `*.md` and the workflow itself) + `workflow_dispatch`.
+- **permissions**: workflow uses `permissions: contents: write` so the default `GITHUB_TOKEN` can push to the wiki. The script writes only inside `wiki/`; main is never touched. There is no LLM in the loop, so the script's behavior is fully audited by reading the yaml.
 
-General principle this module follows: [Task delegation principles](task_principle.md) — especially *role / scope*, *idempotency*, *lazy evaluation*, *fail loud*.
+## Why bash, not an LLM agent
+
+This procedure has zero decision space — `cp` and `git` commands fully express it. An earlier draft wrapped the same procedure in a Claude Code CLI invocation so that `wiki_sync` would double as a self-referential *forge module* demonstration, but the LLM added cost, latency, and a non-determinism risk for no functional gain. The forge concept will be exercised in subsequent modules where genuine judgment is required (automatic doc authoring, link-integrity checks, principle-violation detection). `wiki_sync` is now classified as **infrastructure**, not a forge module.
+
+General principle this module follows: [Task delegation principles](task_principle.md) — especially *role / scope*, *idempotency*, *lazy evaluation*, *fail loud*. The "delegation" here is to a deterministic procedure, not to an agent — the same principles apply.

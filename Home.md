@@ -13,9 +13,11 @@ The last layer humans write. Every forge module below reads these principles and
 
 ## Forge modules (self-referential)
 
-Agents that directly act on this repo's docs and metadata.
+Agents that will directly act on this repo's docs and metadata. *None implemented yet — planned:* automatic doc authoring, link-integrity checks, principle-violation detection, automatic `MD_FILES` maintenance.
 
-- [wiki_sync](wiki_sync.md) — One-way mirror of main-branch `.md` files into this repo's wiki. A Claude Code agent invoked from CI reads this repo's task and principle docs and executes the procedure literally. **The first forge module currently in operation.**
+## Infrastructure
+
+- [wiki_sync](wiki_sync.md) — Deterministic CI step that mirrors main-branch `.md` files into this repo's wiki. Pure bash, no LLM in the loop.
 
 ## External task delegation example (UX / E2E / CI pipeline)
 
@@ -36,11 +38,15 @@ The principles above applied to tasks *outside* this repo.
                 agent_skill_principle     ← seed (doc-authoring principles)
                             ▲
                             │ application
-                ┌───────────┴───────────────────┐
-                │                               │
-   forge modules (self-referential)        external task delegation example
-                │                               │
-   main:*.md ── push ──▶ wiki_sync ──▶ wiki     ux_agent ──(doc_updated)──▶ test_agent ──▶ ci_trigger
-                                                   ▲                                       │
-                                                   └─────────────── on fail ───────────────┘
+                            │
+                            ▼
+                    external task delegation example
+                            │
+              ux_agent ──(doc_updated)──▶ test_agent ──▶ ci_trigger
+                 ▲                                       │
+                 └─────────────── on fail ───────────────┘
+
+   ─── forge modules (self-referential) ── (planned)
+   ─── infrastructure ──────────────────────────────────
+   main:*.md ── push ──▶ wiki_sync (CI bash) ──▶ wiki
 ```
