@@ -18,7 +18,7 @@ Mirrors the `.md` documents on this repo's main branch into this repo's wiki, as
 - **out-of-scope**:
   - Reverse sync from wiki → main.
   - Preserving manual edits made in the wiki — the next sync *always overwrites them*.
-  - Any semantic transformation (whitespace normalization, linting, refactor, translation).
+  - Any semantic transformation (whitespace normalization, linting, refactor, translation). **Exception:** stripping the `.md` extension from internal markdown link URLs (e.g., `](Foo.md)` → `](Foo)`, anchors preserved). This is a target-platform syntax adapter, not a semantic change — GitHub Wiki routes `.md`-suffixed links to raw file URLs instead of rendered wiki pages, so the extension must be removed in the wiki copy for internal navigation to work. Display text containing `.md` and external URLs are not touched.
   - Automatic maintenance of the `MD_FILES` list (human responsibility — must match between `wiki_sync.md` and the workflow yaml).
   - Touching any remote other than this repo.
   - Modifying the main branch.
@@ -37,9 +37,12 @@ inputs:
 1. validate:
        for f in MD_FILES:
            assert exists(source/f)  else exit 1
-2. overlay:
+2. overlay (with .md-link extension adapter):
        for f in MD_FILES:
-           cp source/f wiki/f
+           sed -E 's|\]\(([^)/:#]+)\.md(#[^)]*)?\)|](\1\2)|g' source/f > wiki/f
+       # equivalent to `cp` for content, except internal markdown link URLs
+       # of the form `](Foo.md)` or `](Foo.md#anchor)` lose the .md extension.
+       # External URLs (any `/` or `:` in the captured group) are not matched.
 3. stage:
        cd wiki
        git add -- MD_FILES
@@ -60,7 +63,7 @@ inputs:
   - `wiki/`: working clone of this repo's wiki master
   - `MSG`: commit message constructed by the workflow
 - **out**:
-  - Named `.md` files at the wiki master HEAD = the same files in source (blob-identical)
+  - Named `.md` files at the wiki master HEAD = the same files in source, byte-identical except internal markdown link URLs with the `.md` extension stripped (per the out-of-scope exception).
   - Per-step log line: `RESULT: skip (no changes)` / `RESULT: pushed <sha>` / failure annotation
   - exit code: 0 (success or no-op) / 1 (failure)
 - **event**: none — triggering is the workflow's responsibility (`push: branches:[main]` with a path filter + `workflow_dispatch`).
