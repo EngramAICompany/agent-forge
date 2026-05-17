@@ -14,6 +14,10 @@
 - [test_agent](test_agent.md) — E2E 스크립트 유지·실행.
 - [ci_trigger](ci_trigger.md) — 이벤트 라우팅·관측.
 
+## 인프라 (self-referential)
+
+- [wiki_sync](wiki_sync.md) — main 브랜치의 `.md`를 같은 리포의 wiki에 단방향 미러링. CI에서 호출되는 Claude Code 에이전트가 리포 내 task·원칙 문서를 읽고 그 절차를 그대로 수행한다.
+
 ## 위상
 
 ```
@@ -28,4 +32,7 @@
    ux_agent ──(doc_updated)──▶ test_agent ──▶ ci_trigger
       ▲                                  │
       └──────────── on fail ─────────────┘
+
+   ─── infrastructure ────────────────────────
+   main:*.md ── push(main) ──▶ wiki_sync ──▶ wiki:master    (self-referential)
 ```

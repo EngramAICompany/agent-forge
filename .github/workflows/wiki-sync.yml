@@ -1,0 +1,131 @@
+name: wiki-sync
+
+# main → wiki 단방향 동기화. 실제 동기화 로직은 워크플로에 두지 않고
+# 리포 내 wiki_sync.md + 에이전트 prompt에 위임한다 (self-referential).
+#
+# 이 yaml의 책임:
+#   - trigger 정의
+#   - source/wiki 체크아웃
+#   - lazy gate (diff 없으면 LLM 호출조차 안 함)
+#   - Claude Code 에이전트 호출 (안전한 도구 화이트리스트)
+#   - decision log를 job summary로 노출
+# 이 yaml의 비책임: 어떤 파일을 동기화할지·어떻게 reconcile할지 — 그건 wiki_sync.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '*.md'
+      - 'wiki_sync.md'
+      - '.github/agents/wiki-sync.prompt.md'
+      - '.github/workflows/wiki-sync.yml'
+  workflow_dispatch:
+
+# main 브랜치에 대한 쓰기 금지 (단방향 정책의 기술적 강제)
+permissions:
+  contents: read
+
+concurrency:
+  group: wiki-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: checkout main (source, read-only)
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: clone wiki (writable)
+        env:
+          WIKI_PUSH_TOKEN: ${{ secrets.WIKI_PUSH_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+          git config --global user.name  "wiki-sync-bot"
+          git config --global user.email "wiki-sync-bot@users.noreply.github.com"
+          git clone --quiet --depth=1 \
+            "https://x-access-token:${WIKI_PUSH_TOKEN}@github.com/${{ github.repository }}.wiki.git" \
+            wiki
+
+      - name: lazy gate (skip if no diff)
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          # NOTE: MD_FILES는 wiki_sync.md의 ## 구현 섹션과 정확히 일치해야 한다.
+          # 여기 적힌 목록은 단지 "사전 게이트"용이며, 실제 sync는 에이전트가 wiki_sync.md를 읽어 수행.
+          MD_FILES=(
+            Home.md
+            task_principle.md
+            agent_skill_principle.md
+            wiki_sync.md
+            ux_agent.md
+            test_agent.md
+            ci_trigger.md
+            UX_E2E_CI_plan.md
+          )
+          NEEDS_SYNC=false
+          MISSING=()
+          for f in "${MD_FILES[@]}"; do
+            if [ ! -f "source/$f" ]; then
+              MISSING+=("$f")
+              continue
+            fi
+            if [ ! -f "wiki/$f" ] || ! diff -q "source/$f" "wiki/$f" > /dev/null 2>&1; then
+              NEEDS_SYNC=true
+            fi
+          done
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "::error::Missing in source: ${MISSING[*]}"
+            exit 1
+          fi
+          echo "needs_sync=$NEEDS_SYNC" >> "$GITHUB_OUTPUT"
+          echo "Needs sync: $NEEDS_SYNC"
+
+      - name: invoke Claude Code agent
+        if: steps.gate.outputs.needs_sync == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SOURCE_DIR: ${{ github.workspace }}/source
+          WIKI_DIR: ${{ github.workspace }}/wiki
+          COMMIT_MSG: "sync: mirror main → wiki (${{ github.sha }})"
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Claude Code CLI를 비대화형으로 호출.
+          # 도구는 git/cp/diff에 한정 (Edit/Write는 prompt 정책으로 차단).
+          # NOTE: 실제 CLI 옵션은 설치된 버전에 맞춰 조정 필요할 수 있음.
+          npx -y @anthropic-ai/claude-code \
+            --print \
+            --prompt-file source/.github/agents/wiki-sync.prompt.md \
+            --allowed-tools "Read,Bash(git:*),Bash(cp:*),Bash(diff:*)" \
+            --max-turns 30 \
+            2>&1 | tee /tmp/wiki-sync.log
+
+      - name: decision log → job summary
+        if: always() && steps.gate.outputs.needs_sync == 'true'
+        shell: bash
+        run: |
+          {
+            echo "## Wiki Sync — Decision Log"
+            echo ""
+            echo "- Trigger: \`${{ github.event_name }}\`"
+            echo "- Commit:  \`${{ github.sha }}\`"
+            echo ""
+            echo '```'
+            cat /tmp/wiki-sync.log 2>/dev/null || echo "(no log)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: report skip (lazy)
+        if: steps.gate.outputs.needs_sync != 'true'
+        shell: bash
+        run: |
+          {
+            echo "## Wiki Sync — Skipped"
+            echo ""
+            echo "source and wiki are byte-identical for all MD_FILES. No LLM call made."
+          } >> "$GITHUB_STEP_SUMMARY"
