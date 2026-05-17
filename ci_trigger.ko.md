@@ -1,6 +1,6 @@
 [English](ci_trigger.md) · **[한국어](ci_trigger.ko.md)**
 
-[← Home](Home.ko.md) · [원칙](task_principle.ko.md) · [ux_agent](ux_agent.ko.md) · [test_agent](test_agent.ko.md) · [pipeline](UX_E2E_CI_plan.ko.md)
+[← Home](Home.ko.md) · [원칙](task_principle.ko.md) · [ux_agent](ux_agent.ko.md) · [test_agent](test_agent.ko.md)
 
 # CI 트리거
 

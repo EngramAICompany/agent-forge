@@ -53,7 +53,7 @@ You change behavior by editing the doc one layer up. Lower layers follow — mec
 | Principles (seed) | [`task_principle`](task_principle.md), [`agent_skill_principle`](agent_skill_principle.md) | The last layer humans write directly. |
 | Forge modules (self-referential) | [`spec_sync`](spec_sync.md), [`forge_pr_review`](forge_pr_review.md), [`wiki_e2e`](wiki_e2e.md) | LLM agents that act on this repo's own docs / code / PRs / rendered wiki. |
 | Infrastructure | [`wiki_sync`](wiki_sync.md) | Deterministic CI plumbing — zero decision space, no LLM. |
-| Delegation example | [`UX_E2E_CI_plan`](UX_E2E_CI_plan.md), [`ux_agent`](ux_agent.md), [`test_agent`](test_agent.md), [`ci_trigger`](ci_trigger.md) | Same principles applied *outside* this repo. |
+| Delegation example | [`ux_agent`](ux_agent.md), [`test_agent`](test_agent.md), [`ci_trigger`](ci_trigger.md) | Same principles applied *outside* this repo. |
 
 ## Implementation status
 

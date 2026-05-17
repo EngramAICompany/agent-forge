@@ -1,6 +1,6 @@
 **[English](task_principle.md)** · [한국어](task_principle.ko.md)
 
-[← Home](Home.md) · [Parent principle](agent_skill_principle.md) · [ux_agent](ux_agent.md) · [test_agent](test_agent.md) · [ci_trigger](ci_trigger.md) · [pipeline](UX_E2E_CI_plan.md)
+[← Home](Home.md) · [Parent principle](agent_skill_principle.md) · [ux_agent](ux_agent.md) · [test_agent](test_agent.md) · [ci_trigger](ci_trigger.md)
 
 # Principles for delegating arbitrary tasks
 

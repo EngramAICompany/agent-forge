@@ -90,7 +90,6 @@ inputs:
     - `ux_agent.md`
     - `test_agent.md`
     - `ci_trigger.md`
-    - `UX_E2E_CI_plan.md`
   - 한국어 (번역):
     - `Home.ko.md`
     - `task_principle.ko.md`
@@ -102,7 +101,6 @@ inputs:
     - `ux_agent.ko.md`
     - `test_agent.ko.md`
     - `ci_trigger.ko.md`
-    - `UX_E2E_CI_plan.ko.md`
 - **trigger**: [`.github/workflows/wiki-sync.yml`](.github/workflows/wiki-sync.yml) — `push: branches:[main]` (paths 필터: `*.md` 와 workflow 자신) + `workflow_dispatch`.
 - **권한**: workflow의 `permissions: contents: write` — 기본 `GITHUB_TOKEN` 으로 wiki에 push 가능. 스크립트는 `wiki/` 안에서만 작업하고 main을 건드리지 않음. LLM이 개입하지 않으므로 yaml만 읽으면 동작이 완전히 감사 가능.
 

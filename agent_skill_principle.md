@@ -13,6 +13,5 @@ An application of the Unix philosophy. With one adjustment: because LLMs exhibit
 ## Documents that apply these principles
 
 - [ux_agent](ux_agent.md) · [test_agent](test_agent.md) · [ci_trigger](ci_trigger.md)
-- [Pipeline overview](UX_E2E_CI_plan.md)
 
 Generalized to arbitrary tasks: [Task delegation principles](task_principle.md).

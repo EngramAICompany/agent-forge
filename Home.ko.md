@@ -43,9 +43,8 @@
 
 ## 외부 task 위임 사례 (UX / E2E / CI 파이프라인)
 
-같은 원칙을 이 리포 *바깥*의 task 에 적용한 설계 예시.
+같은 원칙을 이 리포 *바깥*의 task 에 적용한 설계 예시. 세 모듈을 이벤트로 연결: `ux_agent ──(doc_updated)──▶ test_agent ──(e2e_fail)──▶ ci_trigger`.
 
-- [파이프라인 개요](UX_E2E_CI_plan.ko.md) — 세 모듈의 조립도.
 - [ux_agent](ux_agent.ko.md) — UI/UX 문서 동기화.
 - [test_agent](test_agent.ko.md) — E2E 스크립트 유지·실행.
 - [ci_trigger](ci_trigger.ko.md) — 이벤트 라우팅·관측.

@@ -90,7 +90,6 @@ inputs:
     - `ux_agent.md`
     - `test_agent.md`
     - `ci_trigger.md`
-    - `UX_E2E_CI_plan.md`
   - Korean translations:
     - `Home.ko.md`
     - `task_principle.ko.md`
@@ -102,7 +101,6 @@ inputs:
     - `ux_agent.ko.md`
     - `test_agent.ko.md`
     - `ci_trigger.ko.md`
-    - `UX_E2E_CI_plan.ko.md`
 - **trigger**: [`.github/workflows/wiki-sync.yml`](.github/workflows/wiki-sync.yml) — `push: branches:[main]` (path filter limited to `*.md` and the workflow itself) + `workflow_dispatch`.
 - **permissions**: workflow uses `permissions: contents: write` so the default `GITHUB_TOKEN` can push to the wiki. The script writes only inside `wiki/`; main is never touched. There is no LLM in the loop, so the script's behavior is fully audited by reading the yaml.
 

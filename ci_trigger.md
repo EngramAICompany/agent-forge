@@ -1,6 +1,6 @@
 **[English](ci_trigger.md)** · [한국어](ci_trigger.ko.md)
 
-[← Home](Home.md) · [Principles](task_principle.md) · [ux_agent](ux_agent.md) · [test_agent](test_agent.md) · [pipeline](UX_E2E_CI_plan.md)
+[← Home](Home.md) · [Principles](task_principle.md) · [ux_agent](ux_agent.md) · [test_agent](test_agent.md)
 
 # CI trigger
 

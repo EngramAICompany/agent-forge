@@ -43,9 +43,8 @@ Deterministic CI plumbing — zero decision space, no LLM in the loop.
 
 ## External task delegation example (UX / E2E / CI pipeline)
 
-The same principles applied to tasks *outside* this repo.
+The same principles applied to tasks *outside* this repo. Three modules linked by events: `ux_agent ──(doc_updated)──▶ test_agent ──(e2e_fail)──▶ ci_trigger`.
 
-- [Pipeline overview](UX_E2E_CI_plan.md) — Assembly of the three modules.
 - [ux_agent](ux_agent.md) — UI/UX doc synchronization.
 - [test_agent](test_agent.md) — E2E script maintenance and execution.
 - [ci_trigger](ci_trigger.md) — Event routing and observation.

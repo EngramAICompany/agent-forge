@@ -1,6 +1,6 @@
 [English](task_principle.md) · **[한국어](task_principle.ko.md)**
 
-[← Home](Home.ko.md) · [상위 원칙](agent_skill_principle.ko.md) · [ux_agent](ux_agent.ko.md) · [test_agent](test_agent.ko.md) · [ci_trigger](ci_trigger.ko.md) · [pipeline](UX_E2E_CI_plan.ko.md)
+[← Home](Home.ko.md) · [상위 원칙](agent_skill_principle.ko.md) · [ux_agent](ux_agent.ko.md) · [test_agent](test_agent.ko.md) · [ci_trigger](ci_trigger.ko.md)
 
 # 임의 task 위임 원칙
 

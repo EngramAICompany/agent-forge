@@ -65,7 +65,6 @@ jobs:
             ux_agent.md
             test_agent.md
             ci_trigger.md
-            UX_E2E_CI_plan.md
             Home.ko.md
             task_principle.ko.md
             agent_skill_principle.ko.md
@@ -76,7 +75,6 @@ jobs:
             ux_agent.ko.md
             test_agent.ko.md
             ci_trigger.ko.md
-            UX_E2E_CI_plan.ko.md
           )
 
           # 1) validate — source에 명단의 모든 파일이 존재해야 함.

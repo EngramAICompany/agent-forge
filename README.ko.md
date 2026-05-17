@@ -53,7 +53,7 @@
 | 원칙 (seed) | [`task_principle`](task_principle.ko.md), [`agent_skill_principle`](agent_skill_principle.ko.md) | 사람이 직접 쓰는 마지막 계층. |
 | forge 모듈 (self-referential) | [`spec_sync`](spec_sync.ko.md), [`forge_pr_review`](forge_pr_review.ko.md), [`wiki_e2e`](wiki_e2e.ko.md) | 이 리포 자신의 문서·코드·PR·렌더된 위키를 직접 손대는 LLM 에이전트. |
 | Infrastructure | [`wiki_sync`](wiki_sync.ko.md) | 결정론적 CI plumbing — 결정 공간 0, LLM 없음. |
-| 위임 예시 | [`UX_E2E_CI_plan`](UX_E2E_CI_plan.ko.md), [`ux_agent`](ux_agent.ko.md), [`test_agent`](test_agent.ko.md), [`ci_trigger`](ci_trigger.ko.md) | 같은 원칙을 이 리포 *바깥* task 에 적용한 사례. |
+| 위임 예시 | [`ux_agent`](ux_agent.ko.md), [`test_agent`](test_agent.ko.md), [`ci_trigger`](ci_trigger.ko.md) | 같은 원칙을 이 리포 *바깥* task 에 적용한 사례. |
 
 ## 구현 상태
 
