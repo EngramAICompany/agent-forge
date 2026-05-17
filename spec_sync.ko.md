@@ -18,6 +18,7 @@ spec 문서와 그 구현 간 drift를 감지해 reconciliation PR을 여는 sel
 - **out-of-scope**:
   - `spec_doc` 파일 편집 — spec은 SSOT. spec 갱신은 사람 책임 (또는 향후 doc-authoring forge 모듈의 몫).
   - 선언된 페어 외 파일.
+  - **`.github/workflows/*.yml` 을 `impl_file` 로 두는 것** — `GITHUB_TOKEN` 은 워크플로 파일 수정 commit 을 push 할 수 없음 (공급망 공격 차단 정책). 워크플로 yaml 페어가 필요해지면 `workflow` scope 가진 PAT 로 동작하는 별도 forge 모듈을 만들어야 함.
   - main 브랜치에 commit.
   - 페어 간 교차 리팩터링.
 - **위반 시**:
@@ -79,7 +80,11 @@ inputs:
 
 `(spec_doc, impl_file)` 페어의 권위 있는 목록. 에이전트는 매 실행마다 모든 페어를 처리.
 
-- (`wiki_sync.md`, `.github/workflows/wiki-sync.yml`)
+*현재 비어 있음.* 가장 자연스러운 첫 페어 (`wiki_sync.md`, `.github/workflows/wiki-sync.yml`) 는 워크플로 yaml 이 out-of-scope 여서 제외됨 (Scope 참조). 워크플로가 아닌 코드 모듈이 이 리포에 도입되는 시점부터 실제 페어가 추가될 예정. 그 전까지는 매 실행이 `RESULT: skip (no drift)` 로 종료됨 — 이는 빈 페어 리스트의 멱등 도달점이며 버그가 아님.
+
+위 제한이 추가되기 전 첫 실행이 *실제로 검출했던* drift (에이전트 분류 로직의 실증 예로 기록):
+
+- **`wiki_sync.md` ↔ `.github/workflows/wiki-sync.yml`** — `cp` vs `sed` overlay (절차 불일치, "blob-identical" 계약 위반). 에이전트는 commit [`40671e8`](https://github.com/EngramAICompany/agent-forge/commit/40671e8) 이 `sed` 단계를 문서화된 fix 로 도입한 것을 보고 *intentional* 로 분류. 해결: `wiki_sync.md` 가 `.md` 링크 정규화 단계를 인정하도록 갱신. doc-authoring forge 모듈이 생기기 전까지는 사람 책임.
 
 ## 구현
 

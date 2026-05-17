@@ -18,6 +18,7 @@ For each declared `(spec_doc, impl_file)` pair, identify where impl violates spe
 - **out-of-scope**:
   - Editing `spec_doc` files — they are SSOT. Spec updates are a human responsibility (or a future doc-authoring forge module).
   - Files outside declared pairs.
+  - **`.github/workflows/*.yml` as `impl_file`** — `GITHUB_TOKEN` cannot push commits that modify workflow files (GitHub's anti-supply-chain rule). A separate forge module operating with a PAT (`workflow` scope) is required if workflow yaml pairs are ever needed.
   - Committing to main.
   - Cross-pair refactors.
 - **on violation**:
@@ -79,7 +80,11 @@ inputs:
 
 The authoritative list of `(spec_doc, impl_file)` pairs. The agent processes every pair on every run.
 
-- (`wiki_sync.md`, `.github/workflows/wiki-sync.yml`)
+*Currently empty.* The natural first pair (`wiki_sync.md`, `.github/workflows/wiki-sync.yml`) is excluded because workflow yaml impls are out-of-scope (see Scope). Real pairs will be added once non-workflow code modules exist in this repo. Until then, every run exits with `RESULT: skip (no drift)` — this is the idempotent fixpoint of an empty pair list, not a bug.
+
+Drift the first run *did* detect before this restriction was added (kept here as a worked example of the agent's classification logic):
+
+- **`wiki_sync.md` ↔ `.github/workflows/wiki-sync.yml`** — `cp` vs `sed` overlay (procedure mismatch, "blob-identical" contract violation). Classified *intentional* by the agent because commit [`40671e8`](https://github.com/EngramAICompany/agent-forge/commit/40671e8) introduces the `sed` step as a documented fix. Resolution: update `wiki_sync.md` to acknowledge the `.md`-link normalization step. Human responsibility until a doc-authoring forge module exists.
 
 ## Implementation
 
