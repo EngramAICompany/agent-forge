@@ -14,7 +14,7 @@ These three files *are* your rule book. Everything below merely points back to t
 
 ## Step 1 — Execute the procedure
 
-Follow the `## 절차` section of `$SOURCE_DIR/wiki_sync.md` step by step. Each step in that section maps to one or more concrete shell commands (cp, git add, git diff, git commit, git push). Run them via the Bash tool. Use the variables below as the procedure's inputs.
+Follow the `## Procedure` section of `$SOURCE_DIR/wiki_sync.md` step by step. Each step in that section maps to one or more concrete shell commands (cp, git add, git diff, git commit, git push). Run them via the Bash tool. Use the variables below as the procedure's inputs.
 
 ## Environment
 

@@ -55,7 +55,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # NOTE: MD_FILES는 wiki_sync.md의 ## 구현 섹션과 정확히 일치해야 한다.
+          # NOTE: MD_FILES는 wiki_sync.md의 ## Implementation 섹션과 정확히 일치해야 한다.
           # 여기 적힌 목록은 단지 "사전 게이트"용이며, 실제 sync는 에이전트가 wiki_sync.md를 읽어 수행.
           MD_FILES=(
             Home.md
@@ -66,6 +66,14 @@ jobs:
             test_agent.md
             ci_trigger.md
             UX_E2E_CI_plan.md
+            Home.ko.md
+            task_principle.ko.md
+            agent_skill_principle.ko.md
+            wiki_sync.ko.md
+            ux_agent.ko.md
+            test_agent.ko.md
+            ci_trigger.ko.md
+            UX_E2E_CI_plan.ko.md
           )
           NEEDS_SYNC=false
           MISSING=()
@@ -95,12 +103,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Claude Code CLI를 비대화형으로 호출.
-          # 도구는 git/cp/diff에 한정 (Edit/Write는 prompt 정책으로 차단).
-          # NOTE: 실제 CLI 옵션은 설치된 버전에 맞춰 조정 필요할 수 있음.
-          npx -y @anthropic-ai/claude-code \
+          # Claude Code CLI를 비대화형(print) 모드로 호출.
+          # prompt는 stdin으로 전달 (--print는 stdin을 prompt로 사용).
+          # 도구는 git/cp/diff에 한정 (Edit/Write는 prompt 정책으로도 차단).
+          cat source/.github/agents/wiki-sync.prompt.md | npx -y @anthropic-ai/claude-code \
             --print \
-            --prompt-file source/.github/agents/wiki-sync.prompt.md \
             --allowed-tools "Read,Bash(git:*),Bash(cp:*),Bash(diff:*)" \
             --max-turns 30 \
             2>&1 | tee /tmp/wiki-sync.log
