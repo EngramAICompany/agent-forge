@@ -18,7 +18,6 @@ Mirrors the `.md` documents on this repo's main branch into this repo's wiki, as
 - **out-of-scope**:
   - Reverse sync from wiki → main.
   - Preserving manual edits made in the wiki — the next sync *always overwrites them*.
-  - Any semantic transformation (whitespace normalization, linting, refactor, translation). **Exception:** stripping the `.md` extension from internal markdown link URLs (e.g., `](Foo.md)` → `](Foo)`, anchors preserved). This is a target-platform syntax adapter, not a semantic change — GitHub Wiki routes `.md`-suffixed links to raw file URLs instead of rendered wiki pages, so the extension must be removed in the wiki copy for internal navigation to work. Display text containing `.md` and external URLs are not touched.
   - Automatic maintenance of the `MD_FILES` list (human responsibility — must match between `wiki_sync.md` and the workflow yaml).
   - Touching any remote other than this repo.
   - Modifying the main branch.
