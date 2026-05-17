@@ -50,14 +50,14 @@
 
 | 계층 | 파일 | 역할 |
 |---|---|---|
-| 원칙 (seed) | [`task_principle`](task_principle.ko.md), [`agent_skill_principle`](agent_skill_principle.ko.md) | 사람이 직접 쓰는 마지막 계층. |
+| 원칙 (seed) | [`task_principle`](task_principle.ko.md), [`agent_skill_principle`](agent_skill_principle.ko.md), [`workflow_principle`](workflow_principle.ko.md) | 사람이 직접 쓰는 마지막 계층. |
 | forge 모듈 (self-referential) | [`spec_sync`](spec_sync.ko.md), [`forge_pr_review`](forge_pr_review.ko.md) | 이 리포 자신의 문서·코드·PR 을 직접 손대는 LLM 에이전트. |
 | Infrastructure | [`wiki_sync`](wiki_sync.ko.md), [`wiki_e2e`](wiki_e2e.ko.md) | 결정론적 CI plumbing — 결정 공간 0, LLM 없음. |
 | 위임 예시 | [`ux_agent`](ux_agent.ko.md), [`test_agent`](test_agent.ko.md), [`ci_trigger`](ci_trigger.ko.md) | 같은 원칙을 이 리포 *바깥* task 에 적용한 사례. |
 
 ## 구현 상태
 
-- ✓ [`task_principle`](task_principle.ko.md), [`agent_skill_principle`](agent_skill_principle.ko.md) — 작성됨.
+- ✓ [`task_principle`](task_principle.ko.md), [`agent_skill_principle`](agent_skill_principle.ko.md), [`workflow_principle`](workflow_principle.ko.md) — 작성됨.
 - ✓ [`wiki_sync`](wiki_sync.ko.md) — 실행 중 (결정론적 bash, LLM 없음).
 - ✓ [`spec_sync`](spec_sync.ko.md) — 실행 중 (Pairs 비어있음, 비-yaml 페어 도입 대기).
 - ✓ [`forge_pr_review`](forge_pr_review.ko.md) — 실행 중 (등록된 bot: `spec_sync`; 첫 forge-bot PR 대기).

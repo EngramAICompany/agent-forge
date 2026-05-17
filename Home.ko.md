@@ -24,6 +24,7 @@
 
 - ★ [임의 task 위임 원칙](task_principle.ko.md) — 임의의 task 를 에이전트에게 위임할 때의 일반 원칙·템플릿·안티패턴.
 - [에이전트·스킬셋 작성 원칙](agent_skill_principle.ko.md) — 위 원칙의 모태가 된 3가지 핵심 원칙(simplicity / modularity / composition).
+- [Workflow 조립 원칙](workflow_principle.ko.md) — 기존 task doc 들로 복합 workflow 를 조립하는 운영 규칙; 언제 *새 task doc 을 쓰지 말아야 하는지*.
 
 ## forge 모듈 (self-referential)
 

@@ -50,14 +50,14 @@ You change behavior by editing the doc one layer up. Lower layers follow — mec
 
 | Layer | Files | Role |
 |---|---|---|
-| Principles (seed) | [`task_principle`](task_principle.md), [`agent_skill_principle`](agent_skill_principle.md) | The last layer humans write directly. |
+| Principles (seed) | [`task_principle`](task_principle.md), [`agent_skill_principle`](agent_skill_principle.md), [`workflow_principle`](workflow_principle.md) | The last layer humans write directly. |
 | Forge modules (self-referential) | [`spec_sync`](spec_sync.md), [`forge_pr_review`](forge_pr_review.md) | LLM agents that act on this repo's own docs / code / PRs. |
 | Infrastructure | [`wiki_sync`](wiki_sync.md), [`wiki_e2e`](wiki_e2e.md) | Deterministic CI plumbing — zero decision space, no LLM. |
 | Delegation example | [`ux_agent`](ux_agent.md), [`test_agent`](test_agent.md), [`ci_trigger`](ci_trigger.md) | Same principles applied *outside* this repo. |
 
 ## Implementation status
 
-- ✓ [`task_principle`](task_principle.md), [`agent_skill_principle`](agent_skill_principle.md) — written.
+- ✓ [`task_principle`](task_principle.md), [`agent_skill_principle`](agent_skill_principle.md), [`workflow_principle`](workflow_principle.md) — written.
 - ✓ [`wiki_sync`](wiki_sync.md) — running (deterministic bash, no LLM).
 - ✓ [`spec_sync`](spec_sync.md) — running (Pairs list awaiting first non-yaml impl pair).
 - ✓ [`forge_pr_review`](forge_pr_review.md) — running (registered: `spec_sync`; awaits first forge-bot PR).

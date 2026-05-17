@@ -53,7 +53,7 @@ Mirrors `MD_FILES` from this repo's `main` to this repo's wiki master, one-way o
 
 `MD_FILES` (must match `.github/workflows/wiki-sync.yml` exactly):
 
-- English (canonical): `Home`, `task_principle`, `agent_skill_principle`, `wiki_sync`, `spec_sync`, `forge_pr_review`, `wiki_e2e`, `ux_agent`, `test_agent`, `ci_trigger` (all `.md`).
+- English (canonical): `Home`, `task_principle`, `agent_skill_principle`, `workflow_principle`, `wiki_sync`, `spec_sync`, `forge_pr_review`, `wiki_e2e`, `ux_agent`, `test_agent`, `ci_trigger` (all `.md`).
 - Korean translations: same names with `.ko.md` suffix.
 
 - **trigger**: [`.github/workflows/wiki-sync.yml`](.github/workflows/wiki-sync.yml) — `push:branches:[main]` (paths: `*.md` and the workflow itself) + `workflow_dispatch`.

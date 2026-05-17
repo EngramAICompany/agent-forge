@@ -100,6 +100,8 @@ on <failure mode>:
 
 Examples of "arbitrary tasks": dependency upgrades, schema migrations, security review, refactoring, data backfill … all should be definable with the same template. If the template is hard to fill, the task is too large — *decompose*.
 
+How to combine these tasks into a workflow (and when *not* to write a new task doc at all): [Workflow composition principles](workflow_principle.md).
+
 ## Anti-patterns
 
 - "Just do whatever's reasonable" — open-ended delegation → no `success` predicate, no verifiability.

@@ -58,6 +58,7 @@ jobs:
             Home.md
             task_principle.md
             agent_skill_principle.md
+            workflow_principle.md
             wiki_sync.md
             spec_sync.md
             forge_pr_review.md
@@ -68,6 +69,7 @@ jobs:
             Home.ko.md
             task_principle.ko.md
             agent_skill_principle.ko.md
+            workflow_principle.ko.md
             wiki_sync.ko.md
             spec_sync.ko.md
             forge_pr_review.ko.md

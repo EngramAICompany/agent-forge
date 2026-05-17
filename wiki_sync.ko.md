@@ -53,7 +53,7 @@ main 브랜치의 `.md` 를 같은 리포의 wiki 에 단방향 미러링하는 
 
 `MD_FILES` (`.github/workflows/wiki-sync.yml` 과 정확히 일치):
 
-- 영어 (정본): `Home`, `task_principle`, `agent_skill_principle`, `wiki_sync`, `spec_sync`, `forge_pr_review`, `wiki_e2e`, `ux_agent`, `test_agent`, `ci_trigger` (모두 `.md`).
+- 영어 (정본): `Home`, `task_principle`, `agent_skill_principle`, `workflow_principle`, `wiki_sync`, `spec_sync`, `forge_pr_review`, `wiki_e2e`, `ux_agent`, `test_agent`, `ci_trigger` (모두 `.md`).
 - 한국어 (번역): 같은 이름에 `.ko.md` 접미.
 
 - **trigger**: [`.github/workflows/wiki-sync.yml`](.github/workflows/wiki-sync.yml) — `push:branches:[main]` (paths: `*.md` 와 workflow 자신) + `workflow_dispatch`.

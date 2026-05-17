@@ -100,6 +100,8 @@ on <failure mode>:
 
 임의 task의 예: 의존성 업그레이드, 스키마 마이그레이션, 보안 검토, 리팩터링, 데이터 백필 … 모두 같은 템플릿으로 정의 가능해야 한다. 템플릿을 채우기 어렵다면 그 task가 너무 크다는 신호 — *분해*하라.
 
+이 task 들을 workflow 로 조립하는 방법 (그리고 *언제 새 task doc 을 쓰지 말아야 하는지*): [Workflow 조립 원칙](workflow_principle.ko.md).
+
 ## 안티패턴
 
 - "적당히 알아서 해" 식의 open-ended 위임 → success 술어가 없어 검증 불가.
