@@ -2,45 +2,71 @@
 
 # agent-forge
 
-A self-referential project where agent task documents are *created, updated, and synchronized by agents themselves*. The repo defines the principles for delegating tasks to agents — and collects the agents that apply those principles to manage the docs you are reading.
+A worked example of a **self-referential agentic-devops project**: this repo's own management lifecycle is performed by the very agents and processes it defines. The repo is both the specification and the runtime of its own operations — there is no separate "framework" to install, no external rulebook. The artifact you are reading was produced and is maintained by the loop described below.
 
-Entry point: **[Home.md](Home.md)** — full table of contents and topology.
+Wiki (same content, hyperlinked): [Wiki](https://github.com/EngramAICompany/agent-forge/wiki).
 
-## Identity
+## The self-constrained management loop
 
-- **forge** — Agent task docs in this repo are not artifacts that humans *maintain*; they are artifacts that agents *produce, correct, and synchronize*.
-- **self-referential** — Every forge module *reads* this repo's [`task_principle.md`](task_principle.md) and [`agent_skill_principle.md`](agent_skill_principle.md) and acts according to those procedures. There is no external rulebook — the repo itself is both the specification and the runtime.
-- **bootstrap** — Human-authored principles (seed) → agents apply those principles to forge new docs → the expanded doc set becomes the specification for the next agent.
+Every operational change to this repo flows through this chain. Each step is bound by the document one layer up. **The only human entry point is the principles layer at the top.**
 
-## Principles (seed)
+```
+  ★ principles (human seed)
+        │
+        ▼
+    task doc — written using task_principle.md's template (role / scope / contract / procedure / observation)
+        │   "A doc IS a spec."
+        ▼
+    spec analysis ── spec_sync ──▶ PR proposing impl reconciliation
+                                        │
+                                        ▼
+                                forge_pr_review ──▶ approve / request-changes
+                                        │
+                                        ▼
+                                    merge to main
+                                        │
+                                        ▼
+    doc → wiki ── wiki_sync (deterministic bash) ──▶ wiki pages
+                                        │
+                                        ▼
+    wiki E2E verification (planned) ──▶ signal back into the loop
+                                        │
+                                        ▼
+                       feedback re-enters at principles or task-doc layer
+```
 
-The specification every forge module follows. The last layer humans write.
+1. **Principles** (human-written, seed) — [`task_principle`](task_principle.md), [`agent_skill_principle`](agent_skill_principle.md). The last layer humans edit directly.
+2. **Task doc** — every other doc in this repo follows `task_principle.md`'s template. A doc *is* a spec; specs are SSOT.
+3. **Spec analysis → CI reconciliation** — [`spec_sync`](spec_sync.md) detects drift between a spec and its CI implementation, classifies each drift (*mechanical / ambiguous / intentional*), and opens a PR proposing changes. The agent never edits the spec.
+4. **PR review** — [`forge_pr_review`](forge_pr_review.md) evaluates the PR against safety predicates declared per registered bot (allowed paths, body markers, status checks). Approves on pass; requests changes on fail.
+5. **Merge** — into `main`.
+6. **Doc → wiki propagation** — [`wiki_sync`](wiki_sync.md) deterministic CI mirrors `main:*.md` into the wiki, applying a target-platform link adapter (`.md` extension stripping).
+7. **Wiki E2E verification** *(planned)* — browser-level forge module that checks link integrity, language toggles, and rendered-page existence. Discovered findings re-enter the loop.
+8. **Feedback** — verification or new requirements re-enter at step 1 or 2.
 
-- [task_principle.md](task_principle.md) — General principles for delegating arbitrary tasks to agents (role/scope, contract, composition, anti-patterns)
-- [agent_skill_principle.md](agent_skill_principle.md) — Three core principles for authoring agents and skill sets (simplicity / modularity / composition)
+You change behavior by editing the doc one layer up. Lower layers follow — mechanically (deterministic infra) or under LLM judgment constrained by the docs (forge modules). The same `in / out / event / failure` contract form applies everywhere.
 
-## Forge modules (self-referential agents)
+## Layers
 
-Agents that will directly act on this repo's docs and metadata. *None implemented yet — planned:*
+| Layer | Files | Role |
+|---|---|---|
+| Principles (seed) | [`task_principle`](task_principle.md), [`agent_skill_principle`](agent_skill_principle.md) | The last layer humans write directly. |
+| Forge modules (self-referential) | [`spec_sync`](spec_sync.md), [`forge_pr_review`](forge_pr_review.md) | LLM agents that act on this repo's own docs / code / PRs. |
+| Infrastructure | [`wiki_sync`](wiki_sync.md) | Deterministic CI plumbing — zero decision space, no LLM. |
+| Delegation example | [`UX_E2E_CI_plan`](UX_E2E_CI_plan.md), [`ux_agent`](ux_agent.md), [`test_agent`](test_agent.md), [`ci_trigger`](ci_trigger.md) | Same principles applied *outside* this repo. |
 
-- automatic doc authoring
-- link-integrity checks
-- principle-violation detection
-- automatic `MD_FILES` list maintenance
+## Implementation status
 
-## Infrastructure
+- ✓ [`task_principle`](task_principle.md), [`agent_skill_principle`](agent_skill_principle.md) — written.
+- ✓ [`wiki_sync`](wiki_sync.md) — running (deterministic bash, no LLM).
+- ✓ [`spec_sync`](spec_sync.md) — running (Pairs list awaiting first non-yaml impl pair).
+- ✓ [`forge_pr_review`](forge_pr_review.md) — running (registered: `spec_sync`; awaits first forge-bot PR).
+- ☐ wiki E2E verifier — planned (today: ad-hoc human + playwright; see commit `40671e8` for an example discovery that fed back into the loop).
+- ☐ doc-authoring agent — planned.
+- ☐ link-integrity / principle-violation detection — planned.
+- ☐ auto-merge after `forge_pr_approved` — planned.
 
-- [wiki_sync.md](wiki_sync.md) — Deterministic CI step that mirrors main-branch `.md` files into this repo's wiki. Pure bash, no LLM in the loop — the procedure has zero decision space, so it is classified as infrastructure rather than a forge module.
+## Read more
 
-## Applied example — external task delegation (UX / E2E / CI pipeline)
-
-The same principles applied to tasks *outside* this repo.
-
-- [UX_E2E_CI_plan.md](UX_E2E_CI_plan.md) — Pipeline overview
-- [ux_agent.md](ux_agent.md) — UI/UX doc synchronization
-- [test_agent.md](test_agent.md) — E2E script maintenance and execution
-- [ci_trigger.md](ci_trigger.md) — Event routing and observation
-
-## Wiki
-
-Same content is also browsable on the GitHub Wiki: [Wiki](https://github.com/EngramAICompany/agent-forge/wiki) — mirrored automatically by the `wiki_sync` CI step.
+- ★ [Task delegation principles](task_principle.md) — start here.
+- [Home](Home.md) — wiki entry point, full index, topology diagram.
