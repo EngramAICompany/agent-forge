@@ -31,15 +31,15 @@ LLM agents that act on this repo's own docs, code, and PRs.
 
 - [spec_sync](spec_sync.md) — Detects drift between spec docs and their CI implementations; opens a PR proposing reconciliation. Spec is SSOT.
 - [forge_pr_review](forge_pr_review.md) — Reviews and auto-approves PRs opened by other forge modules when declared safety predicates pass. The human-review surrogate inside the loop.
-- [wiki_e2e](wiki_e2e.md) — Verifies the rendered wiki against expectations derived from `wiki_sync.md` and source `.md` files. Fail-loud on missing pages or broken links.
 
-*Planned:* automatic doc authoring, link-integrity checks (deep), principle-violation detection, automatic `MD_FILES` maintenance, auto-merge after `forge_pr_approved`.
+*Planned:* automatic doc authoring, link-integrity checks (deep / semantic), principle-violation detection, automatic `MD_FILES` maintenance, auto-merge after `forge_pr_approved`.
 
 ## Infrastructure
 
 Deterministic CI plumbing — zero decision space, no LLM in the loop.
 
-- [wiki_sync](wiki_sync.md) — Mirrors main-branch `.md` files into this wiki. Pure bash.
+- [wiki_sync](wiki_sync.md) — Mirrors main-branch `.md` files into this wiki, applying target-platform link adapters. Pure bash.
+- [wiki_e2e](wiki_e2e.md) — Verifies the rendered wiki against expectations derived from `wiki_sync.md` and source `.md` files. Fail-loud on missing pages or broken links. Pure bash.
 
 ## External task delegation example (UX / E2E / CI pipeline)
 
@@ -83,5 +83,5 @@ The same principles applied to tasks *outside* this repo. Three modules linked b
                        wiki_sync (CI bash, on push) ──▶ wiki
                             │
                             ▼
-                       wiki_e2e (CI + LLM, on wiki-sync success) ──▶ feedback ──▶ principles / task doc
+                       wiki_e2e (CI bash, on wiki-sync success) ──▶ feedback ──▶ principles / task doc
 ```

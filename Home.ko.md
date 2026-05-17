@@ -31,15 +31,15 @@
 
 - [spec_sync](spec_sync.ko.md) — spec 문서와 그 CI 구현 간 drift 를 감지해 reconciliation PR 을 연다. spec 이 SSOT.
 - [forge_pr_review](forge_pr_review.ko.md) — 다른 forge 모듈이 연 PR 을 선언된 안전성 predicate 에 따라 검토·자동 승인. loop 안의 사람 리뷰어 대리자.
-- [wiki_e2e](wiki_e2e.ko.md) — `wiki_sync.md` 와 source `.md` 로부터 도출한 기대값에 대해 렌더된 위키를 검증. 페이지 누락·링크 단절 시 fail-loud.
 
-*예정:* 문서 자동 작성, 링크 정합성 점검(심층), 원칙 위반 검출, `MD_FILES` 명단 자동 갱신, `forge_pr_approved` 이후 auto-merge.
+*예정:* 문서 자동 작성, 링크 정합성 점검(심층·의미), 원칙 위반 검출, `MD_FILES` 명단 자동 갱신, `forge_pr_approved` 이후 auto-merge.
 
 ## Infrastructure
 
 결정론적 CI plumbing — 결정 공간 0, LLM 없음.
 
-- [wiki_sync](wiki_sync.ko.md) — main 브랜치의 `.md` 를 같은 리포의 wiki 에 미러링. 순수 bash.
+- [wiki_sync](wiki_sync.ko.md) — main 브랜치의 `.md` 를 같은 리포의 wiki 에 미러링하며 타겟 플랫폼 링크 어댑터 적용. 순수 bash.
+- [wiki_e2e](wiki_e2e.ko.md) — `wiki_sync.md` 와 source `.md` 로부터 도출한 기대값에 대해 렌더된 위키를 검증. 페이지 누락·링크 단절 시 fail-loud. 순수 bash.
 
 ## 외부 task 위임 사례 (UX / E2E / CI 파이프라인)
 
@@ -83,5 +83,5 @@
                        wiki_sync (CI bash, push 시) ──▶ wiki
                             │
                             ▼
-                       wiki_e2e (CI + LLM, wiki-sync 성공 후) ──▶ feedback ──▶ 원칙·task 문서
+                       wiki_e2e (CI bash, wiki-sync 성공 후) ──▶ feedback ──▶ 원칙·task 문서
 ```

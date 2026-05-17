@@ -20,9 +20,16 @@ Mirrors `MD_FILES` from this repo's `main` to this repo's wiki master, one-way o
 
 ```
 1. validate:   for f in MD_FILES: assert exists(source/f) else exit 1
-2. overlay:    sed -E 's|\]\(([^)/:#]+)\.md(#[^)]*)?\)|](\1\2)|g' source/f > wiki/f
-               # equivalent to cp for content, except internal markdown link URLs
-               # `](Foo.md)` / `](Foo.md#anchor)` lose the .md extension (target-platform adapter)
+2. overlay:    sed -E \
+                 -e 's|\]\(([^)/:#]+)\.md(#[^)]*)?\)|](\1\2)|g' \
+                 -e "s|\]\(\.github/([^)]+)\)|](https://github.com/<repo>/blob/main/.github/\1)|g" \
+                 source/f > wiki/f
+               # cp for content, plus two target-platform link adapters:
+               #   (a) `](Foo.md)` / `](Foo.md#anchor)` → `](Foo)` / `](Foo#anchor)`
+               #       — GitHub wiki routes .md-suffixed links to raw files.
+               #   (b) `](.github/X)` → `](https://github.com/<repo>/blob/main/.github/X)`
+               #       — wiki has no .github subtree; absolute URL works in both contexts.
+               # External URLs and intra-wiki relative paths are not matched.
 3. stage:      cd wiki; git add -- MD_FILES
 4. lazy gate:  if git diff --cached --quiet: log "RESULT: skip (no changes)"; exit 0
 5. commit:     git commit -m MSG
@@ -32,7 +39,7 @@ Mirrors `MD_FILES` from this repo's `main` to this repo's wiki master, one-way o
 ## Contract
 
 - **in**: source `.md` files at `main` HEAD (MD_FILES); writable wiki working clone; commit message constructed by the workflow.
-- **out**: named files at wiki master HEAD = source files, byte-identical except internal markdown link URLs with `.md` stripped. Per-step log `RESULT: skip (no changes)` / `RESULT: pushed <sha>` / failure annotation. Exit 0 (success/no-op) / 1 (failure).
+- **out**: named files at wiki master HEAD = source files, byte-identical except the two link-URL adapters in Procedure step 2 (`.md` stripped; `.github/X` → absolute github.com URL). Per-step log `RESULT: skip (no changes)` / `RESULT: pushed <sha>` / failure annotation. Exit 0 (success/no-op) / 1 (failure).
 - **event**: none — triggering is the workflow's responsibility (`push:branches:[main]` + path filter + `workflow_dispatch`).
 - **failure**: file missing → exit 1; clone/push failure → propagate git's exit code.
 - **success**: re-run with no source changes hits the lazy gate (idempotent fixpoint).

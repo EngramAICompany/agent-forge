@@ -1,12 +1,12 @@
 [English](wiki_e2e.md) · **[한국어](wiki_e2e.ko.md)**
 
-[← Home](Home.ko.md) · [원칙](task_principle.ko.md) · [wiki_sync](wiki_sync.ko.md) · [spec_sync](spec_sync.ko.md)
+[← Home](Home.ko.md) · [원칙](task_principle.ko.md) · [wiki_sync](wiki_sync.ko.md)
 
 # wiki_e2e
 
-self-referential forge 모듈. `main` 의 source `.md` 와 `wiki_sync.md` `MD_FILES` 로부터 도출한 기대값에 대해 렌더된 GitHub Wiki 를 검증. [self-constrained 관리 loop](Home.ko.md) 의 *doc → wiki* 단계 검증면.
+`main` 의 source `.md` 와 `wiki_sync.md` `MD_FILES` 로부터 도출한 기대값에 대해 렌더된 GitHub Wiki 를 검증하는 결정론적 CI 스텝. 순수 bash — LLM 없음. [self-constrained 관리 loop](Home.ko.md) 의 *doc → wiki* 단계 검증면.
 
-[test_agent](test_agent.ko.md) (앱 UX 문서 E2E) 와 모양이 같지만, 별도의 spec 문서 없이 `wiki_sync.md` 의 `MD_FILES` 를 implicit spec 으로 사용.
+**infrastructure** 로 분류 (forge 모듈 아님) — 모든 predicate 가 파일 존재·HTTP 상태·regex 매치에 대한 결정론적 확인.
 
 ## 역할
 
@@ -14,28 +14,30 @@ self-referential forge 모듈. `main` 의 source `.md` 와 `wiki_sync.md` `MD_FI
 
 ## 범위
 
-- **in-scope**: `wiki_sync.md` MD_FILES 와 source `.md` 읽기; 위키 클론; 각 위키 페이지 URL HTTP 점검; predicate 별 PASS/FAIL 을 job summary 에 보고.
-- **out-of-scope**: 위키·source·workflow 편집; `wiki_sync` 재실행; 시각·스타일·접근성; 브랜치 보호·auto-merge.
-- **위반 시**: `wiki_sync.md` 누락/파싱 불가 → exit 1. 위키 clone·HTTP 실패 → 원 에러와 함께 exit 1. predicate 미흡 → FAIL 기록; *모든* predicate 평가 후 exit 1 (short-circuit 금지).
+- **in-scope**: source `.md` 와 MD_FILES 읽기; 위키 클론; 각 위키 페이지 URL HTTP 점검; predicate 별 PASS/FAIL 을 job summary 에 보고; 미흡 시 non-zero exit.
+- **out-of-scope**: 위키·source·workflow 편집; `wiki_sync` 재실행; 시각·스타일·접근성; 모든 종류의 자동 보정.
+- **위반 시**: `wiki_sync.md` 누락/파싱 불가 → exit 1. 위키 clone·HTTP 실패 → exit code 전파. predicate 미흡 → FAIL 기록; *모든* predicate 평가 후 exit 1 (short-circuit 금지).
 
 ## 절차
 
 ```
-1. parse MD_FILES from wiki_sync.md ## 구현
+1. parse MD_FILES from .github/workflows/wiki-sync.yml (단일 SSOT)
 2. P1 wiki 파일 존재:        [ -f wiki/$f ] ∀ f
-3. P2 wiki 페이지 렌더:      curl -sI <wiki_url>/${f%.md} == 200 ∀ f (xargs -P 8)
+3. P2 wiki 페이지 렌더:      curl -sIL --retry 2 <wiki_url>/${f%.md} == 200 ∀ f
 4. P3 링크 어댑터 적용:      grep -rE '\]\([^)/:#]+\.md(#[^)]*)?\)' wiki/*.md == ∅
 5. P4 EN/KO pair 완전성:     MD_FILES 에 X.md 와 X.ko.md 둘 다 있으면 P2 에서 둘 다 200
-6. P5 링크 정합성:           wiki/*.md 안의 모든 상대 URL 이 200 해소 (xargs -P 8)
+6. P5 링크 정합성:           wiki/*.md 안의 상대 URL 추출 → 각 URL 이 200
 7. 보고서 → $GITHUB_STEP_SUMMARY; 전체 PASS → exit 0, 아니면 1
 ```
+
+`curl -sIL` 가 redirect 를 따라가서 최종 200 만 본다 (GitHub canonical 301/302 → 200 은 pass). `--retry 2 --retry-delay 1` 가 transient 네트워크 blip 흡수.
 
 ## 계약
 
 - **in**: `main` HEAD (MD_FILES + source `.md` 의 원천); 위키 fresh clone; 위키 공개 base URL.
-- **out**: job summary 의 predicate 별 PASS/FAIL 표 (기계 파싱 가능 마크다운). predicate 당 로그 한 줄 `P<n>: pass | fail: <reason>`. exit 0 (모두 PASS) / 1 (하나라도 FAIL 또는 인프라 에러).
-- **event**: consume 암묵적 "위키 갱신" (`wiki-sync` 성공 후 workflow_run); emit 개념적 `wiki_verification_passed` / `wiki_verification_failed` — 리포 내 소비자 없음; CI status check 가 가시 산출물.
-- **failure**: predicate FAIL → 전체 보고 후 exit 1. 위키 clone / HTTP 실패 → 원 에러로 exit 1. `wiki_sync.md` 파싱 불가 → `::error::` 와 함께 exit 1.
+- **out**: job summary 의 predicate 별 PASS/FAIL 표 (Markdown). 마지막 로그 `RESULT: pass` / `RESULT: fail (P<n>,…)`. exit 0 (모두 PASS) / 1 (하나라도 FAIL 또는 인프라 에러).
+- **event**: 없음 — `wiki-sync` 성공 후 `workflow_run` 으로 트리거.
+- **failure**: predicate FAIL → 전체 보고 후 exit 1. 위키 clone / HTTP 실패 → exit code 전파. `wiki_sync.md` 파싱 불가 → `::error::` 와 함께 exit 1.
 - **success**: 현 `main` HEAD + 현 위키 상태에 대해 모든 predicate PASS. 같은 상태 재실행은 같은 verdict (멱등).
 
 ## 관측
@@ -47,7 +49,7 @@ self-referential forge 모듈. `main` 의 source `.md` 와 `wiki_sync.md` `MD_FI
 ## 구현
 
 - **trigger**: [`.github/workflows/wiki-e2e.yml`](.github/workflows/wiki-e2e.yml) — `wiki-sync` 성공 후 `workflow_run` + `workflow_dispatch` + 주간 `schedule`.
-- **agent prompt**: [`.github/agents/wiki-e2e.prompt.md`](.github/agents/wiki-e2e.prompt.md).
-- **권한**: `contents: read` 만. 검증 전용 모듈 — commit·PR·리뷰 없음.
+- **script**: [`.github/scripts/wiki-e2e-check.sh`](.github/scripts/wiki-e2e-check.sh).
+- **권한**: `contents: read` 만. read-only — commit·PR·리뷰 없음.
 
-이 모듈이 따르는 일반 원칙: [임의 task 위임 원칙](task_principle.ko.md) — 특히 *역할·범위* (검증자는 편집하지 않음), *fail loud*, *idempotency*, *observability*.
+이 모듈이 따르는 일반 원칙: [임의 task 위임 원칙](task_principle.ko.md) — *역할·범위* (검증자는 편집하지 않음), *fail loud*, *idempotency*, *observability*. [`wiki_sync`](wiki_sync.ko.md) 와 마찬가지로 "위임" 의 대상은 에이전트가 아니라 결정론적 절차.

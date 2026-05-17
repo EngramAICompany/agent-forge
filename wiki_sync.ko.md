@@ -20,9 +20,16 @@ main 브랜치의 `.md` 를 같은 리포의 wiki 에 단방향 미러링하는 
 
 ```
 1. validate:   for f in MD_FILES: assert exists(source/f) else exit 1
-2. overlay:    sed -E 's|\]\(([^)/:#]+)\.md(#[^)]*)?\)|](\1\2)|g' source/f > wiki/f
-               # 내용은 cp 와 동등, 단 내부 마크다운 링크 URL
-               # `](Foo.md)` / `](Foo.md#anchor)` 에서 .md 제거 (타겟 플랫폼 어댑터)
+2. overlay:    sed -E \
+                 -e 's|\]\(([^)/:#]+)\.md(#[^)]*)?\)|](\1\2)|g' \
+                 -e "s|\]\(\.github/([^)]+)\)|](https://github.com/<repo>/blob/main/.github/\1)|g" \
+                 source/f > wiki/f
+               # 내용은 cp 와 동등, 단 두 개의 타겟 플랫폼 링크 어댑터:
+               #   (a) `](Foo.md)` / `](Foo.md#anchor)` → `](Foo)` / `](Foo#anchor)`
+               #       — GitHub wiki 가 .md 링크를 raw 파일로 라우팅.
+               #   (b) `](.github/X)` → `](https://github.com/<repo>/blob/main/.github/X)`
+               #       — wiki 에는 .github 서브트리가 없음; 절대 URL 이 양쪽에서 동작.
+               # 외부 URL 과 wiki 내 상대 경로는 매치 안 됨.
 3. stage:      cd wiki; git add -- MD_FILES
 4. lazy gate:  if git diff --cached --quiet: log "RESULT: skip (no changes)"; exit 0
 5. commit:     git commit -m MSG
@@ -32,7 +39,7 @@ main 브랜치의 `.md` 를 같은 리포의 wiki 에 단방향 미러링하는 
 ## 계약
 
 - **in**: `main` HEAD 의 source `.md` (MD_FILES); 쓰기 가능한 wiki working clone; workflow 가 구성하는 commit message.
-- **out**: wiki master HEAD 의 명시 파일 = source 와 byte-identical, 단 내부 마크다운 링크 URL 에서 `.md` 제거. 단계별 로그 `RESULT: skip (no changes)` / `RESULT: pushed <sha>` / 실패 annotation. exit 0 (성공·no-op) / 1 (실패).
+- **out**: wiki master HEAD 의 명시 파일 = source 와 byte-identical, 단 절차 step 2 의 두 링크 URL 어댑터 적용 (`.md` 제거; `.github/X` → 절대 github.com URL). 단계별 로그 `RESULT: skip (no changes)` / `RESULT: pushed <sha>` / 실패 annotation. exit 0 (성공·no-op) / 1 (실패).
 - **event**: 없음 — 트리거는 workflow 책임 (`push:branches:[main]` + paths + `workflow_dispatch`).
 - **failure**: 파일 누락 → exit 1; clone/push 실패 → git exit code 그대로 전파.
 - **success**: source 변경 없는 재실행은 lazy gate 에서 조기 종료 (멱등 도달).
