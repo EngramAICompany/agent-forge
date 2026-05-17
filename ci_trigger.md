@@ -6,29 +6,35 @@
 
 ## Role
 
-Receives defined event signals and routes them to the appropriate agent.
+Routes defined event signals to the appropriate downstream agent. Pub/sub router only — never performs the routed work itself.
 
 ## Scope
 
-- **in-scope**: routing defined events (`E2E fail`, `doc_updated`, etc.) by mapping; measuring and logging wasted-call rate.
-- **out-of-scope**: performing the actual work (each agent's job); defining or emitting new events; modifying agent internals; auto-recovery from failures.
+- **in-scope**: routing the events declared in Procedure by their fixed mapping; logging the wasted-call rate.
+- **out-of-scope**: performing the routed work (each agent owns its own); defining or emitting new event types; modifying agent internals; auto-recovery from a routed agent's failure.
 - **on violation**: undefined signal → log + escalate. Never guess-route an unmapped event.
 
-## Principle
+## Procedure
 
-Lazy evaluation. Detect changes via failure signals.
+```
+on `e2e_fail`     → invoke test_agent for cause classification → (ux_agent | reject PR | escalate)
+on `doc_updated`  → invoke test_agent for concurrent update
+on <unmapped>     → log + escalate (do not guess-route)
+```
 
-## Rules
+Lazy: no run is initiated without a defined inbound signal (task_principle §6).
 
-- `E2E fail` → [test_agent](test_agent.md) classifies cause → [ux_agent](ux_agent.md) or reject
-- `doc_updated` → [test_agent](test_agent.md) updates concurrently
+## Contract
 
-## Failure
-
-Undefined signal → log + escalate.
+- **in**: an inbound event signal — `e2e_fail`, `doc_updated`, or unmapped.
+- **out**: invocation of the routed agent OR an escalation log entry. No artifacts of its own.
+- **event**: consume `e2e_fail` (from [test_agent](test_agent.md)) and `doc_updated` (from [ux_agent](ux_agent.md)); emit none — pure router.
+- **failure**: undefined signal → log + escalate, exit cleanly. Downstream agent failure → propagate; ci_trigger does not retry.
+- **success**: every inbound event in the mapping resulted in exactly one downstream invocation; every unmapped event was logged + escalated. Re-running on the same `(event, ts)` is a no-op (deduplicated).
 
 ## Observation
 
-Wasted-call rate = (runs ending in "no change") / (all runs). Measured via logs.
+- **wasted-call rate** = (runs ending in "no change") / (all runs).
+- **escalation rate** = (unmapped events) / (total events). Should trend to zero.
 
-General principle this module follows: [Task delegation principles](task_principle.md) — especially the *lazy evaluation* and *observability* clauses.
+General principle this module follows: [Task delegation principles](task_principle.md) — especially *lazy evaluation* and *observability*.

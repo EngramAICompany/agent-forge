@@ -64,7 +64,7 @@ jobs:
           cat main/.github/agents/wiki-e2e.prompt.md | npx -y @anthropic-ai/claude-code \
             --print \
             --allowed-tools "Read,Bash(curl:*),Bash(grep:*),Bash(sed:*),Bash(cat:*),Bash(ls:*),Bash(find:*),Bash(wc:*),Bash(head:*),Bash(tail:*),Bash(diff:*),Bash(jq:*),Bash(git:log),Bash(git:diff),Bash(gh:*),Bash(echo:*),Bash([:*),Bash(test:*)" \
-            --max-turns 40 \
+            --max-turns 80 \
             2>&1 | tee /tmp/wiki-e2e.log
 
       - name: job summary (raw log fallback)
