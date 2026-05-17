@@ -8,7 +8,7 @@ An application of the Unix philosophy. With one adjustment: because LLMs exhibit
 
 1. **simplicity (minimalism)**: drop boilerplate and verbose phrasing; write only essential information, concisely.
 2. **modularity**: split into small, independent files. One module = one responsibility, no nesting.
-3. **composition**: connect modules as a pipeline. Every module declares `in / out / event / failure`. Operational rules for composing existing tasks into a workflow — and when not to create a new task at all — live in [Workflow composition principles](workflow_principle.md).
+3. **composition**: connect modules as a pipeline. Every module declares `in / out / event / failure`. The operational rules for wiring atomic task docs into composite task docs (the Unix-pipe analog at the doc level) live in [Workflow composition principles](workflow_principle.md).
 
 ## Documents that apply these principles
 

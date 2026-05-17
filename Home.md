@@ -24,7 +24,7 @@ The last layer humans write. Every forge module reads these and follows the proc
 
 - ★ [Task delegation principles](task_principle.md) — General principles, templates, and anti-patterns for delegating arbitrary tasks to agents.
 - [Agent / skill-set authoring principles](agent_skill_principle.md) — The three core principles (simplicity / modularity / composition) that underpin the general principles above.
-- [Workflow composition principles](workflow_principle.md) — Operational rules for assembling complex workflows from existing task docs; when *not* to write a new task doc.
+- [Workflow composition principles](workflow_principle.md) — Operational rules for wiring atomic task docs into composite task docs (Unix-pipe analog at the doc level).
 
 ## Forge modules (self-referential)
 

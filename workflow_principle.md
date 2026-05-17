@@ -4,68 +4,109 @@
 
 # Workflow composition principles
 
-Operational extension of [`agent_skill_principle`](agent_skill_principle.md)'s *composition* pillar: how to assemble complex agentic workflows from existing task documents. Where `task_principle` says how to author one task doc, this says how to *compose* the existing set when new work arrives.
+Operational extension of [`agent_skill_principle`](agent_skill_principle.md)'s *composition* pillar. **Build complex capabilities by wiring small atomic task docs into composite task docs — like Unix pipes.** `grep | sort | uniq -c | head` is more powerful than any of its parts; saved as a script it becomes a first-class tool. The same idea applied to agentic workflows: a composite task doc *names* a useful pipeline and carries its own contract.
 
 ## Premise
 
-For composite work, **the default is composition, not creation.** Walk the existing task doc set first; create a new task doc only for a genuinely new responsibility. New docs are cheap to write but expensive to maintain — every doc adds a contract that future composition must respect.
+**Composite task docs are first-class outputs**, not file-system clutter to avoid. Authoring one is how you turn ad-hoc orchestration into a named, contracted, observable capability that future workflows can themselves compose against.
+
+The job of this doc: tell you (a) when to compose vs. extend vs. author atomic, (b) how a composite doc differs structurally from an atomic one, (c) what makes a composite earn its keep.
 
 ## Decision rule
 
-When a complex task arrives:
+When new work arrives:
 
-1. **Decompose** it into atomic work units.
-2. For each unit, ask in order:
-   - (a) Does an existing task doc *already cover* this work? → reuse, no new file.
-   - (b) Does an existing doc *partially cover*, with the gap living in its **data** section (e.g., `spec_sync.md`'s `## Pairs`, `forge_pr_review.md`'s `## Registered forge bots`, `wiki_sync.md`'s `MD_FILES`)? → extend the data without changing scope.
-   - (c) Genuinely new responsibility (distinct role, distinct contract)? → write a new task doc using [`task_principle`](task_principle.md)'s template.
-3. **Connect units via events** — `consume` / `emit` only. Direct calls between tasks are forbidden ([`agent_skill_principle`](agent_skill_principle.md) §3, [`task_principle`](task_principle.md) §4).
+1. **Decompose** it into atomic work units (responsibilities with one role / one contract each).
+2. For each unit, pick the lightest fit:
+   - (a) An existing task doc covers it → use as a primitive, no new file.
+   - (b) Gap lives in an existing doc's **data** section (e.g., `spec_sync.md`'s `## Pairs`, `forge_pr_review.md`'s `## Registered forge bots`, `wiki_sync.md`'s `MD_FILES`) → extend the data, no new file.
+   - (c) Genuinely new atomic responsibility → write a **new atomic task doc** ([`task_principle`](task_principle.md) template).
+3. For the work *as a whole*:
+   - If it's a single primitive's job → invoke it directly, no composite.
+   - If it wires *multiple* primitives into a named capability → write a **composite task doc** with its own outer contract.
+4. Connect every unit via `Contract.event` clauses — no direct task-to-task calls ([`agent_skill_principle`](agent_skill_principle.md) §3).
 
-## Inheritance — how to reuse
+## Composition — how to write a composite task doc
 
-Four mechanisms, in increasing weight:
+A composite is a [`task_principle`](task_principle.md)-templated doc whose *Procedure* delegates to atomic primitives via events, and whose *Contract* declares an outer interface that no single primitive alone provides.
 
-| Mechanism | What's inherited | Example in this repo |
+Shape (illustrative):
+
+```
+# docs_health_check (composite)
+
+## Role
+Aggregate the per-edge doc-health verdicts from spec_sync and wiki_e2e
+into one repo-level "docs healthy" signal.
+
+## Scope
+- in-scope: subscribe to wiki_e2e_passed and spec_sync_no_drift; aggregate;
+  emit a single repo-level verdict per source SHA.
+- out-of-scope: re-running the underlying checks; editing their docs;
+  defining new check predicates.
+
+## Procedure
+on `wiki_e2e_passed(sha)`        → record signal A(sha)
+on `spec_sync_no_drift(sha)`     → record signal B(sha)
+on A(sha) ∧ B(sha) within W      → emit `docs_healthy(sha)`
+on window W elapsed without both → emit `docs_stale(sha, missing=[…])`
+
+## Contract
+- in:      events from primitives, source SHA
+- out:     exactly one verdict event per source SHA
+- event:   consume wiki_e2e_passed, spec_sync_no_drift; emit docs_healthy | docs_stale
+- failure: primitive failure → propagate as docs_stale with cause; W elapsed → docs_stale
+- success: every SHA produces exactly one verdict (idempotent across re-emits)
+```
+
+What changed vs. an atomic doc:
+
+| Section | Atomic doc | Composite doc |
+|---|---|---|
+| Procedure | own algorithm | delegates to primitives via events |
+| Contract.in | direct inputs | mostly events from primitives |
+| Contract.failure | own branches | usually wraps primitive failure events |
+| Observation | own metrics | usually aggregates primitives' metrics |
+
+**Same template, different fill.** That is the point — composites and atomics are interchangeable inside larger pipelines.
+
+## Inheritance — what primitives expose to composites
+
+Four reuse mechanisms, lightest → heaviest:
+
+| Mechanism | What's inherited | Example |
 |---|---|---|
 | **Pointer** | Link to parent principle at the doc's bottom | every task doc closes with `General principle: [task_principle](task_principle.md)` |
-| **Template** | The 6-section structure (Role / Scope / Procedure / Contract / Observation) | every task doc here |
-| **Pattern** | The shape of an analog module | `wiki_e2e` ← shape of `test_agent` (E2E verifier) |
-| **Data** | A row added to an existing doc's data section | a new pair in `spec_sync.md` `## Pairs`; a new bot in `forge_pr_review.md` `## Registered forge bots` |
+| **Template** | The 6-section structure (Role / Scope / Procedure / Contract / Observation) | every doc here |
+| **Pattern** | Shape of an analog module | `wiki_e2e` borrowed `test_agent`'s E2E-verifier shape |
+| **Data** | A row added to an existing doc's data section | a pair in `spec_sync.md` `## Pairs`; a bot in `forge_pr_review.md` `## Registered forge bots` |
 
-Data inheritance is the strongest form — no new file, no new contract obligation, just a row in an existing table. Prefer it.
+A composite typically uses Pointer + Template + (often) Pattern; primitives expose Data slots to be appended to.
 
-## Composition — how to combine
+## When to write a composite (positive signals)
 
-- Connect tasks via **events** declared in each Contract's `event` clause.
-- Each task remains responsible only for its declared `in / out / event / failure / success`.
-- Failure propagation follows each Contract.failure branch — no implicit recovery, no shared global state.
-- A new task doc inherits the contract obligations of any parent it points to.
+- The wiring repeats — you'd otherwise script the same orchestration each time.
+- The composite's contract is **not reducible** to any single primitive's contract.
+- The composite names a *capability*, not just a sequence — future workflows will want to compose against the composite as if it were a primitive.
 
-## When to write a new task doc (positive signals)
+## When NOT to write a composite (negative signals)
 
-- The work has a distinct `in / out / event / failure / success` table.
-- The responsibility is enumerable and **disjoint** from every existing task.
-- A new role *and* a new scope — not just a new code path inside an existing scope.
-
-## When NOT to write a new task doc (negative signals)
-
-- The work is doc maintenance on an existing module — edit that module's doc in place.
-- The work is a one-shot operation — write a script or a commit, not a forge module.
-- The proposed doc would just point at existing docs without adding its own contract — collapse it.
-- Two candidate tasks have overlapping `in-scope` — restructure responsibilities before writing both.
+- One-shot orchestration — a script or a workflow run suffices.
+- The composite would just rename one primitive → collapse it.
+- The composite would have no contract of its own, only a topology diagram → delete (this is exactly why `UX_E2E_CI_plan.md` was removed).
 
 ## Worked examples (this repo)
 
-- ✓ **`forge_pr_review` created** — PR safety predicates were a new responsibility; no existing task covered them. New role, new contract, new in/out/event/failure/success.
-- ✓ **`wiki_e2e` created** — wiki verification was new. Shape borrowed from `test_agent` (E2E verifier pattern); the spec borrowed `MD_FILES` from `wiki_sync.md` (data inheritance — no separate wiki spec doc).
-- ✗ **`UX_E2E_CI_plan.md` deleted** — its content (topology + module list) was already covered by Home's inline diagram and the individual module docs. The standalone file no longer earned its keep.
-- ✗ **`cp` → `sed` drift in `wiki_sync`** — not a new task. `wiki_sync` already owned the procedure. Updated `wiki_sync.md` in place.
+- ✓ **`wiki_e2e`** — composite of `wiki_sync` completion (event) + `wiki_sync.md`'s `MD_FILES` (data inheritance) + curl/grep verification primitives. Its outer contract (per-predicate PASS/FAIL with redirect-tolerant HTTP) is not reducible to any single primitive.
+- ✓ **`forge_pr_review`** — partial composite: consumes GitHub-native `pull_request` event + reads `spec_sync.md`'s `## Pairs` data; the predicate-evaluation logic is the new atomic responsibility it adds; `forge_pr_approved` is the composed output.
+- ✗ **`UX_E2E_CI_plan.md` deleted** — tried to be a composite (`ux_agent | test_agent | ci_trigger`) but had only a topology diagram, no `in / out / event / failure / success` of its own. **A composite without a contract is the anti-pattern.** The wiring it described still exists; it now lives inline in Home's diagram.
+- ✗ **`cp → sed` in `wiki_sync`** — in-place evolution of an atomic doc, not composition. No new doc needed.
 
 ## Anti-patterns
 
-- **Contract-less task doc** — `Role` and `Scope` written but no `Contract.in/out/event/failure/success`. Bypasses auto-verifiability.
-- **Overlapping scope** — new doc whose `in-scope` intersects an existing module's. Violates composition's actor-model premise.
-- **Wrapper task** — a doc that delegates entirely to one existing task without adding its own contract. Collapse it.
-- **Scope creep on an existing task** — touching `in-scope` of an established module to accommodate new work. Restructure: split the new responsibility into its own task.
+- **Contract-less composite** — topology diagram with no `in / out / event / failure / success`. Future workflows can't compose against it. (Deleted: `UX_E2E_CI_plan.md`.)
+- **Wrapper composite** — composite that just renames one primitive. Collapse.
+- **Scope-creeping composite** — composite that mutates a primitive's `in-scope` to fit. Restructure responsibilities first.
+- **Atomic gluttony** — refusing to compose, re-authoring every new use case as a fresh atomic doc. Primitives never accumulate; the doc set bloats without gaining leverage.
 
 General principle this composition rule extends: [`agent_skill_principle`](agent_skill_principle.md) — especially the *composition* pillar.
