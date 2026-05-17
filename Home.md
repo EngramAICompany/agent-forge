@@ -13,7 +13,11 @@ The last layer humans write. Every forge module below reads these principles and
 
 ## Forge modules (self-referential)
 
-Agents that will directly act on this repo's docs and metadata. *None implemented yet — planned:* automatic doc authoring, link-integrity checks, principle-violation detection, automatic `MD_FILES` maintenance.
+Agents that directly act on this repo's docs and metadata.
+
+- [spec_sync](spec_sync.md) — Detects drift between spec docs and their implementations; opens a PR proposing reconciliation. Spec is SSOT.
+
+*Planned:* `forge_pr_review` (auto-approves forge-module PRs that meet stated criteria), automatic doc authoring, link-integrity checks, principle-violation detection, automatic `MD_FILES` maintenance.
 
 ## Infrastructure
 
@@ -46,7 +50,8 @@ The principles above applied to tasks *outside* this repo.
                  ▲                                       │
                  └─────────────── on fail ───────────────┘
 
-   ─── forge modules (self-referential) ── (planned)
-   ─── infrastructure ──────────────────────────────────
+   ─── forge modules (self-referential) ──────────────────
+   main:{spec,impl} drift ── push ──▶ spec_sync (CI + LLM) ──▶ PR
+   ─── infrastructure ────────────────────────────────────
    main:*.md ── push ──▶ wiki_sync (CI bash) ──▶ wiki
 ```

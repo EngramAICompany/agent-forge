@@ -1,0 +1,83 @@
+name: spec-sync
+
+# spec → code 단방향 화해(reconciliation). 결정 공간이 있어 LLM 위임.
+#
+# 이 yaml의 책임:
+#   - trigger 정의
+#   - main 체크아웃 (편집 가능)
+#   - git identity 설정
+#   - Claude Code 에이전트 호출 (도구 화이트리스트)
+#   - 결정 로그를 job summary로 노출
+# 이 yaml의 비책임: 무엇을 어떻게 화해할지 — 그건 spec_sync.md + spec-sync.prompt.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      # 선언된 페어의 spec/impl + 이 workflow + agent prompt + spec_sync 본문.
+      - 'spec_sync.md'
+      - 'spec_sync.ko.md'
+      - 'wiki_sync.md'
+      - 'wiki_sync.ko.md'
+      - '.github/workflows/wiki-sync.yml'
+      - '.github/workflows/spec-sync.yml'
+      - '.github/agents/spec-sync.prompt.md'
+  workflow_dispatch:
+
+# sync 브랜치 push + PR 오픈에 필요. main 은 절대 쓰지 않음 (에이전트 prompt 가 강제).
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: spec-sync
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: configure git identity
+        run: |
+          git config --global user.name  "spec-sync-bot"
+          git config --global user.email "spec-sync-bot@users.noreply.github.com"
+
+      - name: invoke Claude Code agent
+        env:
+          # 구독플랜(Pro/Max) OAuth 토큰. wiki-sync 도 같은 시크릿 사용.
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # gh CLI 인증. PR 작성에 pull-requests:write 필요.
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # 에이전트는 spec_sync.md 의 ## Pairs 를 읽어 페어별 화해를 수행하고
+          # 필요 시 gh pr create 로 PR 을 연다. 자세한 절차는 prompt 참조.
+          cat .github/agents/spec-sync.prompt.md | npx -y @anthropic-ai/claude-code \
+            --print \
+            --allowed-tools "Read,Edit,Write,Bash(git:*),Bash(gh:*),Bash(diff:*),Bash(cat:*),Bash(ls:*),Bash(grep:*),Bash(sed:*)" \
+            --max-turns 50 \
+            2>&1 | tee /tmp/spec-sync.log
+
+      - name: job summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Spec Sync"
+            echo ""
+            echo "- Trigger: \`${{ github.event_name }}\`"
+            echo "- Commit:  \`${{ github.sha }}\`"
+            echo ""
+            echo '```'
+            tail -200 /tmp/spec-sync.log 2>/dev/null || echo "(no log)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
