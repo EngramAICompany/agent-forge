@@ -85,6 +85,7 @@ inputs:
     - `agent_skill_principle.md`
     - `wiki_sync.md`
     - `spec_sync.md`
+    - `forge_pr_review.md`
     - `ux_agent.md`
     - `test_agent.md`
     - `ci_trigger.md`
@@ -95,6 +96,7 @@ inputs:
     - `agent_skill_principle.ko.md`
     - `wiki_sync.ko.md`
     - `spec_sync.ko.md`
+    - `forge_pr_review.ko.md`
     - `ux_agent.ko.md`
     - `test_agent.ko.md`
     - `ci_trigger.ko.md`

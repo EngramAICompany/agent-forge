@@ -1,0 +1,78 @@
+name: forge-pr-review
+
+# 다른 forge 모듈이 연 PR 을 자동 검토·승인. 결정 공간 있어 LLM 위임.
+#
+# 이 yaml의 책임:
+#   - trigger 정의 (pull_request)
+#   - PR head 체크아웃 (spec/prompt 접근용)
+#   - Claude Code 에이전트 호출 (도구 화이트리스트)
+#   - 결정 로그를 job summary 로 노출
+# 이 yaml의 비책임: 어떤 PR 을 어떤 기준으로 승인할지 — 그건 forge_pr_review.md.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to re-review
+        required: true
+        type: string
+
+# 리뷰 게시에 pull-requests: write 필요. commit/push 는 하지 않으므로 contents 는 read.
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: forge-pr-review-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+  cancel-in-progress: false
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: checkout PR head (for spec/prompt access)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: invoke Claude Code agent
+        env:
+          # 구독플랜 OAuth 토큰. spec-sync · wiki-sync 와 동일 시크릿.
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # gh CLI 인증. 리뷰 게시에 pull-requests:write 필요.
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # 에이전트는 forge_pr_review.md 의 ## Registered forge bots 를 읽고
+          # PR predicate 를 평가한 뒤 gh pr review 로 결과를 게시한다.
+          cat .github/agents/forge-pr-review.prompt.md | npx -y @anthropic-ai/claude-code \
+            --print \
+            --allowed-tools "Read,Bash(gh:*),Bash(git:*),Bash(cat:*),Bash(ls:*),Bash(grep:*),Bash(jq:*)" \
+            --max-turns 30 \
+            2>&1 | tee /tmp/forge-pr-review.log
+
+      - name: job summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Forge PR Review"
+            echo ""
+            echo "- PR: \`#${{ github.event.pull_request.number || github.event.inputs.pr_number }}\`"
+            echo "- Author: \`${{ github.event.pull_request.user.login }}\`"
+            echo "- Head: \`${{ github.event.pull_request.head.ref }}@${{ github.event.pull_request.head.sha }}\`"
+            echo ""
+            echo '```'
+            tail -200 /tmp/forge-pr-review.log 2>/dev/null || echo "(no log)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
