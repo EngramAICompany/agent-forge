@@ -29,7 +29,7 @@
     문서 → 위키 ── wiki_sync (결정론적 bash) ──▶ wiki 페이지
                                         │
                                         ▼
-    wiki E2E 검증 (예정) ──▶ 결과를 다시 loop 로 흘려보냄
+    wiki E2E 검증 ── wiki_e2e (wiki-sync 성공 후) ──▶ 결과를 다시 loop 로 흘려보냄
                                         │
                                         ▼
                           원칙·task 문서 계층에 feedback 재진입
@@ -41,7 +41,7 @@
 4. **PR 리뷰** — [`forge_pr_review`](forge_pr_review.ko.md) 가 등록된 bot 별로 선언된 안전성 predicate (allowed paths, body markers, status checks) 를 평가해 approve 또는 request-changes 게시.
 5. **머지** — `main` 으로.
 6. **문서 → 위키 propagation** — [`wiki_sync`](wiki_sync.ko.md) 결정론적 CI 가 `main:*.md` 를 위키로 미러링. 타겟 플랫폼용 링크 어댑터(`.md` 확장자 제거) 적용.
-7. **wiki E2E 검증** *(예정)* — 렌더된 위키의 링크 정합성·언어 토글·페이지 존재 여부를 브라우저 레벨에서 점검하는 forge 모듈. 발견된 사항은 loop 로 재진입.
+7. **wiki E2E 검증** — [`wiki_e2e`](wiki_e2e.ko.md) 가 매 `wiki_sync` 성공 이후 실행. 페이지 존재·링크 정합성·`.md` 확장자 어댑터·EN/KO 페어 완전성을 점검. 실패는 `main` 의 빨간 CI 상태로 노출된다.
 8. **Feedback** — 검증 결과나 새 요구사항은 1단계 또는 2단계로 재진입.
 
 행동을 바꾸려면 한 층 위 문서를 고친다. 아래 계층은 자동으로 따라온다 — 결정론적 인프라는 기계적으로, forge 모듈은 그 문서에 묶인 LLM 판단으로. 같은 `in / out / event / failure` 계약 형식이 모든 계층에서 동일하게 적용된다.
@@ -51,7 +51,7 @@
 | 계층 | 파일 | 역할 |
 |---|---|---|
 | 원칙 (seed) | [`task_principle`](task_principle.ko.md), [`agent_skill_principle`](agent_skill_principle.ko.md) | 사람이 직접 쓰는 마지막 계층. |
-| forge 모듈 (self-referential) | [`spec_sync`](spec_sync.ko.md), [`forge_pr_review`](forge_pr_review.ko.md) | 이 리포 자신의 문서·코드·PR 을 직접 손대는 LLM 에이전트. |
+| forge 모듈 (self-referential) | [`spec_sync`](spec_sync.ko.md), [`forge_pr_review`](forge_pr_review.ko.md), [`wiki_e2e`](wiki_e2e.ko.md) | 이 리포 자신의 문서·코드·PR·렌더된 위키를 직접 손대는 LLM 에이전트. |
 | Infrastructure | [`wiki_sync`](wiki_sync.ko.md) | 결정론적 CI plumbing — 결정 공간 0, LLM 없음. |
 | 위임 예시 | [`UX_E2E_CI_plan`](UX_E2E_CI_plan.ko.md), [`ux_agent`](ux_agent.ko.md), [`test_agent`](test_agent.ko.md), [`ci_trigger`](ci_trigger.ko.md) | 같은 원칙을 이 리포 *바깥* task 에 적용한 사례. |
 
@@ -61,7 +61,7 @@
 - ✓ [`wiki_sync`](wiki_sync.ko.md) — 실행 중 (결정론적 bash, LLM 없음).
 - ✓ [`spec_sync`](spec_sync.ko.md) — 실행 중 (Pairs 비어있음, 비-yaml 페어 도입 대기).
 - ✓ [`forge_pr_review`](forge_pr_review.ko.md) — 실행 중 (등록된 bot: `spec_sync`; 첫 forge-bot PR 대기).
-- ☐ wiki E2E 검증기 — 예정 (현재는 사람 + playwright 즉석 검증; loop 에 feedback 한 사례는 commit `40671e8` 참고).
+- ✓ [`wiki_e2e`](wiki_e2e.ko.md) — 실행 중 (`wiki-sync` 성공 후 `workflow_run` + 주간 schedule 트리거).
 - ☐ 문서 자동 작성 에이전트 — 예정.
 - ☐ 링크 정합성·원칙 위반 검출 — 예정.
 - ☐ `forge_pr_approved` 이후 auto-merge — 예정.

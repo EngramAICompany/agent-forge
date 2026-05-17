@@ -1,0 +1,89 @@
+name: wiki-e2e
+
+# wiki_sync 가 위키를 갱신한 직후 위키 상태를 검증. 결정 공간 있어 LLM 위임.
+#
+# 이 yaml의 책임:
+#   - trigger 정의 (wiki-sync workflow_run + dispatch + 주간 schedule)
+#   - main 체크아웃 + 위키 fresh clone
+#   - 환경변수(WIKI_DIR / WIKI_URL / MAIN_DIR) 주입
+#   - Claude Code 에이전트 호출 (read-only 도구 화이트리스트)
+#   - 결정 로그를 job summary 로 노출
+# 이 yaml의 비책임: 어떤 predicate 를 어떻게 평가할지 — 그건 wiki_e2e.md + prompt.
+
+on:
+  workflow_run:
+    workflows: [wiki-sync]
+    types: [completed]
+  workflow_dispatch:
+  schedule:
+    # 주 1회 (월요일 09:00 UTC) drift 캐치 — wiki_sync 외부에서 위키가 편집되거나
+    # 외부 요인으로 페이지가 사라진 경우.
+    - cron: '0 9 * * 1'
+
+# 검증 전용 모듈. commit·PR·리뷰 모두 안 함.
+permissions:
+  contents: read
+
+concurrency:
+  group: wiki-e2e
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # workflow_run 의 경우 트리거 워크플로가 성공했을 때만 실행. dispatch·schedule 은 항상.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: checkout main (read-only by convention)
+        uses: actions/checkout@v4
+        with:
+          path: main
+
+      - name: clone wiki (read-only)
+        run: |
+          set -euo pipefail
+          git clone --quiet --depth=1 \
+            "https://github.com/${{ github.repository }}.wiki.git" \
+            wiki
+
+      - name: invoke Claude Code agent
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          WIKI_DIR: ${{ github.workspace }}/wiki
+          MAIN_DIR: ${{ github.workspace }}/main
+          WIKI_URL: https://github.com/${{ github.repository }}/wiki
+        shell: bash
+        run: |
+          set -euo pipefail
+          # 에이전트는 wiki_e2e.md 의 predicate 집합을 평가하고 job summary 에 보고.
+          # 검증 전용이므로 Edit / Write / git commit / gh pr 모두 화이트리스트에 없음.
+          cat main/.github/agents/wiki-e2e.prompt.md | npx -y @anthropic-ai/claude-code \
+            --print \
+            --allowed-tools "Read,Bash(curl:*),Bash(grep:*),Bash(sed:*),Bash(cat:*),Bash(ls:*),Bash(find:*),Bash(wc:*),Bash(head:*),Bash(tail:*),Bash(diff:*),Bash(jq:*),Bash(git:log),Bash(git:diff),Bash(gh:*),Bash(echo:*),Bash([:*),Bash(test:*)" \
+            --max-turns 40 \
+            2>&1 | tee /tmp/wiki-e2e.log
+
+      - name: job summary (raw log fallback)
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo ""
+            echo "---"
+            echo ""
+            echo "### Run metadata"
+            echo ""
+            echo "- Trigger: \`${{ github.event_name }}\`"
+            echo "- Source: \`${{ github.event.workflow_run.name || github.workflow }} #${{ github.event.workflow_run.id || github.run_id }}\`"
+            echo "- Wiki URL: \`https://github.com/${{ github.repository }}/wiki\`"
+            echo ""
+            echo "<details><summary>raw agent log (last 200 lines)</summary>"
+            echo ""
+            echo '```'
+            tail -200 /tmp/wiki-e2e.log 2>/dev/null || echo "(no log)"
+            echo '```'
+            echo ""
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -31,8 +31,9 @@ LLM agents that act on this repo's own docs, code, and PRs.
 
 - [spec_sync](spec_sync.md) — Detects drift between spec docs and their CI implementations; opens a PR proposing reconciliation. Spec is SSOT.
 - [forge_pr_review](forge_pr_review.md) — Reviews and auto-approves PRs opened by other forge modules when declared safety predicates pass. The human-review surrogate inside the loop.
+- [wiki_e2e](wiki_e2e.md) — Verifies the rendered wiki against expectations derived from `wiki_sync.md` and source `.md` files. Fail-loud on missing pages or broken links.
 
-*Planned:* wiki E2E verifier, automatic doc authoring, link-integrity checks, principle-violation detection, automatic `MD_FILES` maintenance, auto-merge after `forge_pr_approved`.
+*Planned:* automatic doc authoring, link-integrity checks (deep), principle-violation detection, automatic `MD_FILES` maintenance, auto-merge after `forge_pr_approved`.
 
 ## Infrastructure
 
@@ -83,5 +84,5 @@ The same principles applied to tasks *outside* this repo.
                        wiki_sync (CI bash, on push) ──▶ wiki
                             │
                             ▼
-                    wiki E2E verifier (planned) ──▶ feedback ──▶ principles / task doc
+                       wiki_e2e (CI + LLM, on wiki-sync success) ──▶ feedback ──▶ principles / task doc
 ```

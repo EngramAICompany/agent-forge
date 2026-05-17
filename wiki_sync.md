@@ -86,6 +86,7 @@ inputs:
     - `wiki_sync.md`
     - `spec_sync.md`
     - `forge_pr_review.md`
+    - `wiki_e2e.md`
     - `ux_agent.md`
     - `test_agent.md`
     - `ci_trigger.md`
@@ -97,6 +98,7 @@ inputs:
     - `wiki_sync.ko.md`
     - `spec_sync.ko.md`
     - `forge_pr_review.ko.md`
+    - `wiki_e2e.ko.md`
     - `ux_agent.ko.md`
     - `test_agent.ko.md`
     - `ci_trigger.ko.md`

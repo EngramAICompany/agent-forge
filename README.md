@@ -29,7 +29,7 @@ Every operational change to this repo flows through this chain. Each step is bou
     doc → wiki ── wiki_sync (deterministic bash) ──▶ wiki pages
                                         │
                                         ▼
-    wiki E2E verification (planned) ──▶ signal back into the loop
+    wiki E2E verification ── wiki_e2e (after wiki-sync success) ──▶ signal back into the loop
                                         │
                                         ▼
                        feedback re-enters at principles or task-doc layer
@@ -41,7 +41,7 @@ Every operational change to this repo flows through this chain. Each step is bou
 4. **PR review** — [`forge_pr_review`](forge_pr_review.md) evaluates the PR against safety predicates declared per registered bot (allowed paths, body markers, status checks). Approves on pass; requests changes on fail.
 5. **Merge** — into `main`.
 6. **Doc → wiki propagation** — [`wiki_sync`](wiki_sync.md) deterministic CI mirrors `main:*.md` into the wiki, applying a target-platform link adapter (`.md` extension stripping).
-7. **Wiki E2E verification** *(planned)* — browser-level forge module that checks link integrity, language toggles, and rendered-page existence. Discovered findings re-enter the loop.
+7. **Wiki E2E verification** — [`wiki_e2e`](wiki_e2e.md) runs after every successful `wiki_sync`, checking page existence, link integrity, the `.md`-extension adapter, and EN/KO pair completeness. Failures surface as a red CI status on `main`.
 8. **Feedback** — verification or new requirements re-enter at step 1 or 2.
 
 You change behavior by editing the doc one layer up. Lower layers follow — mechanically (deterministic infra) or under LLM judgment constrained by the docs (forge modules). The same `in / out / event / failure` contract form applies everywhere.
@@ -51,7 +51,7 @@ You change behavior by editing the doc one layer up. Lower layers follow — mec
 | Layer | Files | Role |
 |---|---|---|
 | Principles (seed) | [`task_principle`](task_principle.md), [`agent_skill_principle`](agent_skill_principle.md) | The last layer humans write directly. |
-| Forge modules (self-referential) | [`spec_sync`](spec_sync.md), [`forge_pr_review`](forge_pr_review.md) | LLM agents that act on this repo's own docs / code / PRs. |
+| Forge modules (self-referential) | [`spec_sync`](spec_sync.md), [`forge_pr_review`](forge_pr_review.md), [`wiki_e2e`](wiki_e2e.md) | LLM agents that act on this repo's own docs / code / PRs / rendered wiki. |
 | Infrastructure | [`wiki_sync`](wiki_sync.md) | Deterministic CI plumbing — zero decision space, no LLM. |
 | Delegation example | [`UX_E2E_CI_plan`](UX_E2E_CI_plan.md), [`ux_agent`](ux_agent.md), [`test_agent`](test_agent.md), [`ci_trigger`](ci_trigger.md) | Same principles applied *outside* this repo. |
 
@@ -61,7 +61,7 @@ You change behavior by editing the doc one layer up. Lower layers follow — mec
 - ✓ [`wiki_sync`](wiki_sync.md) — running (deterministic bash, no LLM).
 - ✓ [`spec_sync`](spec_sync.md) — running (Pairs list awaiting first non-yaml impl pair).
 - ✓ [`forge_pr_review`](forge_pr_review.md) — running (registered: `spec_sync`; awaits first forge-bot PR).
-- ☐ wiki E2E verifier — planned (today: ad-hoc human + playwright; see commit `40671e8` for an example discovery that fed back into the loop).
+- ✓ [`wiki_e2e`](wiki_e2e.md) — running (triggered by `workflow_run` after `wiki-sync` success + weekly schedule).
 - ☐ doc-authoring agent — planned.
 - ☐ link-integrity / principle-violation detection — planned.
 - ☐ auto-merge after `forge_pr_approved` — planned.
