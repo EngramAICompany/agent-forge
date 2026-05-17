@@ -96,7 +96,9 @@ jobs:
       - name: invoke Claude Code agent
         if: steps.gate.outputs.needs_sync == 'true'
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # 구독플랜(Pro/Max) OAuth 토큰. `claude setup-token`으로 발급, 1년 유효.
+          # CLI는 이 변수를 우선 사용해 인증함 (ANTHROPIC_API_KEY 불필요).
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           SOURCE_DIR: ${{ github.workspace }}/source
           WIKI_DIR: ${{ github.workspace }}/wiki
           COMMIT_MSG: "sync: mirror main → wiki (${{ github.sha }})"
