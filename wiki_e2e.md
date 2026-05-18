@@ -36,7 +36,7 @@ For every `MD_FILE` in [`wiki_sync.md`](wiki_sync.md), assert that the correspon
 
 - **in**: `main` HEAD (source of MD_FILES + source `.md`); fresh wiki clone; wiki public base URL.
 - **out**: per-predicate PASS/FAIL table in job summary (Markdown). Final log `RESULT: pass` / `RESULT: fail (P<n>,…)`. Exit 0 (all PASS) / 1 (any FAIL or infra error).
-- **event**: none — triggered by `workflow_run` after `wiki-sync` success.
+- **event**: triggered by `workflow_run` after `wiki-sync` success. Emit `wiki_e2e_completed(sha, verdict ∈ {pass, fail})` — consumed by [`forge_update`](forge_update.md).
 - **failure**: predicate FAIL → exit 1 after full report. Wiki clone / HTTP failure → propagate exit code. `wiki_sync.md` unparseable → exit 1 with `::error::`.
 - **success**: every predicate PASS for current `main` HEAD + current wiki state. Same state → same verdict (idempotent).
 

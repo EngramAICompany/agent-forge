@@ -13,7 +13,7 @@ For each declared `(spec_doc, impl_file)` pair, identify where impl violates spe
 ## Scope
 
 - **in-scope**: pairs in `## Pairs`; editing `impl_file` on a `spec-sync/auto-*` branch; opening one PR per run.
-- **out-of-scope**: editing spec docs (SSOT); `.github/workflows/*.yml` impls (GITHUB_TOKEN cannot push workflow file changes — needs a PAT-scoped module); files outside declared pairs; committing to main; cross-pair refactors.
+- **out-of-scope**: editing spec docs (SSOT); `.github/*` impls — workflows/agents/scripts (→ [`ci_spec_sync`](ci_spec_sync.md), PAT-scoped; `GITHUB_TOKEN` cannot push workflow files); files outside declared pairs; committing to main; cross-pair refactors.
 - **on violation**: spec missing → exit 1. Impl missing → record drift, no synthesis. Drift would revert an intentional recent change (`git log`) or spec is too vague → record under Escalations, no edit. PR still opens.
 
 ## Procedure
@@ -31,7 +31,7 @@ For each declared `(spec_doc, impl_file)` pair, identify where impl violates spe
 
 - **in**: `## Pairs` of this doc; `main` HEAD (read-only).
 - **out**: one PR on `spec-sync/auto-*` with drift+escalation body, OR no PR. Job-summary line `RESULT: pr <url>` / `skip (no drift)` / failure. Exit 0 (ok/no-op) / 1 (failure).
-- **event**: none — triggering is the workflow's job (`push:branches:[main]` + paths + `workflow_dispatch`).
+- **event**: triggering is the workflow's job (`push:branches:[main]` + paths + `workflow_dispatch`). Emit `spec_sync_completed(sha, verdict ∈ {skip, pr, failure}, pr_url?)` — consumed by [`forge_update`](forge_update.md).
 - **failure**: spec missing → exit 1; pair parse failure → exit 1; `gh pr create` failure → propagate.
 - **success**: re-run on same commit produces no new PR. Each merged PR strictly reduces drift count.
 

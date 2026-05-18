@@ -31,7 +31,9 @@ The last layer humans write. Every forge module reads these and follows the proc
 LLM agents that act on this repo's own docs, code, and PRs.
 
 - [spec_sync](spec_sync.md) — Detects drift between spec docs and their CI implementations; opens a PR proposing reconciliation. Spec is SSOT.
+- [ci_spec_sync](ci_spec_sync.md) — PAT-scoped sibling of `spec_sync`. Covers `.github/*` impls (workflows, agent prompts, scripts) that `GITHUB_TOKEN` cannot push.
 - [forge_pr_review](forge_pr_review.md) — Reviews and auto-approves PRs opened by other forge modules when declared safety predicates pass. The human-review surrogate inside the loop.
+- [forge_update](forge_update.md) **(composite)** — Aggregates leg-completion events (`wiki_sync`, `wiki_e2e`, `spec_sync`, `ci_spec_sync`, `forge_pr_review`) into one per-`main`-SHA convergence verdict: `converged` / `pending(drift_prs)` / `stale`.
 
 *Planned:* automatic doc authoring, link-integrity checks (deep / semantic), principle-violation detection, automatic `MD_FILES` maintenance, auto-merge after `forge_pr_approved`.
 
@@ -100,8 +102,9 @@ A Unix-pipe composite ([workflow_principle](workflow_principle.md)) — three at
    ─── self-constrained management loop (this repo manages itself) ─────────────
    ★ principles ──▶ task doc (spec)
                             │
-                            ▼
-                       spec_sync (CI + LLM, on push)
+                            ▼  (on push to main — parallel)
+                spec_sync             (drift on .md / code impls)
+                ci_spec_sync          (drift on .github/* impls, PAT)
                             │
                             ▼
                    PR ── pull_request ──▶ forge_pr_review ──▶ approve / changes
@@ -113,5 +116,14 @@ A Unix-pipe composite ([workflow_principle](workflow_principle.md)) — three at
                        wiki_sync (CI bash, on push) ──▶ wiki
                             │
                             ▼
-                       wiki_e2e (CI bash, on wiki-sync success) ──▶ feedback ──▶ principles / task doc
+                       wiki_e2e (CI bash, on wiki-sync success)
+                            │
+                            ▼  leg-completion events keyed by main SHA
+                       forge_update (composite, aggregates per SHA)
+                            │
+                            ▼
+              converged | pending(drift_prs) | stale
+                            │
+                            ▼
+                   feedback ──▶ principles / task doc
 ```

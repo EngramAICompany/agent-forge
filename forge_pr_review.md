@@ -31,7 +31,7 @@ For each `pull_request` against `main`, if the head branch matches a registered 
 
 - **in**: `pull_request` event (or `workflow_dispatch` with `pr_number`); `## Registered forge bots`.
 - **out**: one PR review (approve / request-changes / comment) OR no review. Job-summary line `RESULT: approved <pr>` / `changes_requested <pr>` / `approved_as_comment <pr> (self-review fallback)` / `skip (unregistered|idempotent)` / failure. Exit 0 (ok/no-op) / 1 (failure).
-- **event**: consume `pull_request`; emit conceptual `forge_pr_approved` (no current consumer — reserved for a future auto-merge module).
+- **event**: consume `pull_request`; emit `forge_pr_approved(pr_url, head_sha)` — consumed by [`forge_update`](forge_update.md) (and reserved for a future auto-merge module).
 - **failure**: predicate eval error → comment review, exit 0 (PR-level loud). `gh pr review` infra failure → exit 1 (workflow-level loud).
 - **success**: re-run on same `head_sha` produces no new review.
 
@@ -48,6 +48,12 @@ For each `pull_request` against `main`, if the head branch matches a registered 
   - allowed paths: union of `impl_file` in [`spec_sync.md`](spec_sync.md) `## Pairs` (currently empty — an unexpected PR triggers `request-changes`)
   - required body markers: `## Drift summary`
   - extra predicates: no path outside allowed-paths; no `.github/workflows/*.yml`; all required status checks `success`
+
+- **ci_spec_sync**
+  - branch pattern: `ci-spec-sync/auto-*`
+  - allowed paths: union of `ci_impl_file` in [`ci_spec_sync.md`](ci_spec_sync.md) `## CI Pairs` — restricted to `.github/workflows/*.yml`, `.github/agents/*.prompt.md`, `.github/scripts/*`
+  - required body markers: `## Drift summary`
+  - extra predicates: no path outside `.github/*`; all required status checks `success`. **PAT-authored** — same-actor self-review restrictions do not apply; approval (not comment-fallback) is expected.
 
 ## Implementation
 

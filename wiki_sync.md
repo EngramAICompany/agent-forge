@@ -40,7 +40,7 @@ Mirrors `MD_FILES` from this repo's `main` to this repo's wiki master, one-way o
 
 - **in**: source `.md` files at `main` HEAD (MD_FILES); writable wiki working clone; commit message constructed by the workflow.
 - **out**: named files at wiki master HEAD = source files, byte-identical except the two link-URL adapters in Procedure step 2 (`.md` stripped; `.github/X` → absolute github.com URL). Per-step log `RESULT: skip (no changes)` / `RESULT: pushed <sha>` / failure annotation. Exit 0 (success/no-op) / 1 (failure).
-- **event**: none — triggering is the workflow's responsibility (`push:branches:[main]` + path filter + `workflow_dispatch`).
+- **event**: triggering is the workflow's responsibility (`push:branches:[main]` + path filter + `workflow_dispatch`). Emit `wiki_sync_completed(sha, verdict ∈ {pushed, skip, failure})` — consumed by [`forge_update`](forge_update.md).
 - **failure**: file missing → exit 1; clone/push failure → propagate git's exit code.
 - **success**: re-run with no source changes hits the lazy gate (idempotent fixpoint).
 
