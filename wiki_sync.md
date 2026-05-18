@@ -13,7 +13,7 @@ Mirrors `MD_FILES` from this repo's `main` to this repo's wiki master, one-way o
 ## Scope
 
 - **in-scope**: push named `MD_FILES` `main → wiki master`, one-way; no-op when source and wiki are byte-identical (lazy).
-- **out-of-scope**: reverse sync; preserving manual wiki edits (next sync overwrites); `MD_FILES` list maintenance (human responsibility — must match between this doc and the workflow yaml); any remote other than this repo; modifying main.
+- **out-of-scope**: reverse sync; preserving manual wiki edits (next sync overwrites); `MD_FILES` list maintenance (→ [`wiki_registry_sync`](wiki_registry_sync.md) for additions; deletions are human work); any remote other than this repo; modifying main.
 - **on violation**: file outside the list → ignore. Source file missing → exit 1 (fail loud).
 
 ## Procedure
@@ -49,14 +49,44 @@ Mirrors `MD_FILES` from this repo's `main` to this repo's wiki master, one-way o
 - **wasted-call rate** = (runs ending `skip`) / (all runs).
 - **drift lag** = (main update commit time) → (next successful sync time).
 
+## MD_FILES
+
+The authoritative list of `.md` files mirrored from `main` to the wiki. **Single SSOT** — both [`.github/workflows/wiki-sync.yml`](.github/workflows/wiki-sync.yml) and [`.github/scripts/wiki-e2e-check.sh`](.github/scripts/wiki-e2e-check.sh) parse this section at runtime. Additions are appended by [`wiki_registry_sync`](wiki_registry_sync.md); deletions are human work.
+
+- Home.md
+- task_principle.md
+- agent_skill_principle.md
+- workflow_principle.md
+- wiki_sync.md
+- spec_sync.md
+- forge_pr_review.md
+- wiki_e2e.md
+- ux_agent.md
+- test_agent.md
+- ci_trigger.md
+- ci_spec_sync.md
+- forge_update.md
+- silent_fail_detector.md
+- silent_fail_audit.md
+- log_gap_locator.md
+- log_inserter.md
+- ko_sync.md
+- wiki_registry_sync.md
+- Home.ko.md
+- task_principle.ko.md
+- agent_skill_principle.ko.md
+- workflow_principle.ko.md
+- wiki_sync.ko.md
+- spec_sync.ko.md
+- forge_pr_review.ko.md
+- wiki_e2e.ko.md
+- ux_agent.ko.md
+- test_agent.ko.md
+- ci_trigger.ko.md
+
 ## Implementation
 
-`MD_FILES` (must match `.github/workflows/wiki-sync.yml` exactly):
-
-- English (canonical): `Home`, `task_principle`, `agent_skill_principle`, `workflow_principle`, `wiki_sync`, `spec_sync`, `forge_pr_review`, `wiki_e2e`, `ux_agent`, `test_agent`, `ci_trigger` (all `.md`).
-- Korean translations: same names with `.ko.md` suffix.
-
-- **trigger**: [`.github/workflows/wiki-sync.yml`](.github/workflows/wiki-sync.yml) — `push:branches:[main]` (paths: `*.md` and the workflow itself) + `workflow_dispatch`.
-- **permissions**: `contents: write` (push to wiki only; main is never touched). No LLM — the yaml is the full audit.
+- **trigger**: [`.github/workflows/wiki-sync.yml`](.github/workflows/wiki-sync.yml) — `push:branches:[main]` (paths: `*.md` and the workflow itself) + `workflow_dispatch`. The workflow parses `## MD_FILES` from this doc at runtime.
+- **permissions**: `contents: write` (push to wiki only; main is never touched). No LLM — the yaml plus this doc's `## MD_FILES` is the full audit.
 
 General principle this module follows: [Task delegation principles](task_principle.md) — especially *role / scope*, *idempotency*, *lazy evaluation*, *fail loud*. The "delegation" here is to a deterministic procedure, not an agent — the same principles apply.

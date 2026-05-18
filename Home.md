@@ -32,10 +32,12 @@ LLM agents that act on this repo's own docs, code, and PRs.
 
 - [spec_sync](spec_sync.md) — Detects drift between spec docs and their CI implementations; opens a PR proposing reconciliation. Spec is SSOT.
 - [ci_spec_sync](ci_spec_sync.md) — PAT-scoped sibling of `spec_sync`. Covers `.github/*` impls (workflows, agent prompts, scripts) that `GITHUB_TOKEN` cannot push.
+- [ko_sync](ko_sync.md) — Creates missing `.ko.md` siblings and updates stale ones (diff-aware). LLM-driven translator; EN spec is SSOT.
+- [wiki_registry_sync](wiki_registry_sync.md) — Appends new `.md` / `.ko.md` files to [`wiki_sync.md ## MD_FILES`](wiki_sync.md) (the single SSOT for what gets mirrored to the wiki). Append-only on one data section.
 - [forge_pr_review](forge_pr_review.md) — Reviews and auto-approves PRs opened by other forge modules when declared safety predicates pass. The human-review surrogate inside the loop.
-- [forge_update](forge_update.md) **(composite)** — Aggregates leg-completion events (`wiki_sync`, `wiki_e2e`, `spec_sync`, `ci_spec_sync`, `forge_pr_review`) into one per-`main`-SHA convergence verdict: `converged` / `pending(drift_prs)` / `stale`.
+- [forge_update](forge_update.md) **(composite)** — Aggregates leg-completion events (`wiki_sync`, `wiki_e2e`, `spec_sync`, `ci_spec_sync`, `ko_sync`, `wiki_registry_sync`, `forge_pr_review`) into one per-`main`-SHA convergence verdict: `converged` / `pending(drift_prs)` / `stale`.
 
-*Planned:* automatic doc authoring, link-integrity checks (deep / semantic), principle-violation detection, automatic `MD_FILES` maintenance, auto-merge after `forge_pr_approved`.
+*Planned:* automatic doc authoring, link-integrity checks (deep / semantic), principle-violation detection, auto-merge after `forge_pr_approved`.
 
 ## Infrastructure
 
@@ -105,6 +107,8 @@ A Unix-pipe composite ([workflow_principle](workflow_principle.md)) — three at
                             ▼  (on push to main — parallel)
                 spec_sync             (drift on .md / code impls)
                 ci_spec_sync          (drift on .github/* impls, PAT)
+                ko_sync               (missing / stale .ko.md siblings)
+                wiki_registry_sync    (new .md → MD_FILES append)
                             │
                             ▼
                    PR ── pull_request ──▶ forge_pr_review ──▶ approve / changes

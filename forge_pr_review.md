@@ -55,6 +55,18 @@ For each `pull_request` against `main`, if the head branch matches a registered 
   - required body markers: `## Drift summary`
   - extra predicates: no path outside `.github/*`; all required status checks `success`. **PAT-authored** — same-actor self-review restrictions do not apply; approval (not comment-fallback) is expected.
 
+- **ko_sync**
+  - branch pattern: `ko-sync/auto-*`
+  - allowed paths: `*.ko.md` in repo root only
+  - required body markers: `## Translations`
+  - extra predicates: every changed path matches `*.ko.md` (no other path types); all required status checks `success`
+
+- **wiki_registry_sync**
+  - branch pattern: `wiki-registry-sync/auto-*`
+  - allowed paths: `wiki_sync.md` only (data-section append scope)
+  - required body markers: `## Added entries`
+  - extra predicates: diff scope ⊆ `## MD_FILES` bullet region (no prose / other-section changes); only insertions of lines matching `^- [A-Za-z_][A-Za-z0-9_.]*\.md$`; all required status checks `success`
+
 ## Implementation
 
 - **trigger**: [`.github/workflows/forge-pr-review.yml`](.github/workflows/forge-pr-review.yml).

@@ -53,9 +53,13 @@ The authoritative `(spec_doc, ci_impl_file)` list. The agent processes every pai
 - `(spec_sync.md,        .github/agents/spec-sync.prompt.md)`
 - `(forge_pr_review.md,  .github/workflows/forge-pr-review.yml)`
 - `(forge_pr_review.md,  .github/agents/forge-pr-review.prompt.md)`
-- `(ci_spec_sync.md,     .github/workflows/ci-spec-sync.yml)` *(self-referential — created with the impl)*
-- `(ci_spec_sync.md,     .github/agents/ci-spec-sync.prompt.md)` *(self-referential — created with the impl)*
-- `(forge_update.md,     .github/workflows/forge-update.yml)` *(created with the impl)*
+- `(ci_spec_sync.md,        .github/workflows/ci-spec-sync.yml)` *(self-referential — created with the impl)*
+- `(ci_spec_sync.md,        .github/agents/ci-spec-sync.prompt.md)` *(self-referential — created with the impl)*
+- `(forge_update.md,        .github/workflows/forge-update.yml)` *(created with the impl)*
+- `(ko_sync.md,             .github/workflows/ko-sync.yml)` *(created with the impl)*
+- `(ko_sync.md,             .github/agents/ko-sync.prompt.md)` *(created with the impl)*
+- `(wiki_registry_sync.md,  .github/workflows/wiki-registry-sync.yml)` *(created with the impl)*
+- `(wiki_registry_sync.md,  .github/agents/wiki-registry-sync.prompt.md)` *(created with the impl)*
 
 ## Implementation
 

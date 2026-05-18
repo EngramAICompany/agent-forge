@@ -16,15 +16,14 @@ set -euo pipefail
 : "${WIKI_URL:?WIKI_URL is required}"
 : "${GITHUB_STEP_SUMMARY:=/dev/stdout}"
 
-# Source of truth for MD_FILES: the wiki-sync workflow yaml. (wiki_sync.md is
-# the spec; the yaml is the impl; both must agree per wiki_sync.md.)
-MD_FILES=$(awk '/MD_FILES=\(/{flag=1; next} /^[[:space:]]*\)/{flag=0} flag' \
-  "$MAIN_DIR/.github/workflows/wiki-sync.yml" \
-  | grep -E '\.md$' \
-  | tr -d ' ')
+# Source of truth for MD_FILES: wiki_sync.md ## MD_FILES section. Both this script
+# and .github/workflows/wiki-sync.yml parse it at runtime — single SSOT.
+MD_FILES=$(awk '/^## MD_FILES/{flag=1; next} /^## /{flag=0} flag && /^- /' \
+  "$MAIN_DIR/wiki_sync.md" \
+  | grep -oE '[A-Za-z_][A-Za-z0-9_.]*\.md')
 
 if [ -z "$MD_FILES" ]; then
-  echo "::error::could not parse MD_FILES from .github/workflows/wiki-sync.yml"
+  echo "::error::could not parse MD_FILES from wiki_sync.md ## MD_FILES"
   exit 1
 fi
 

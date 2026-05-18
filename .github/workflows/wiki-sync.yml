@@ -9,7 +9,8 @@ name: wiki-sync
 #   - overlay + commit + push
 #   - 결정 로그를 job summary로 노출
 # 이 yaml의 비책임:
-#   - MD_FILES와 wiki_sync.md 간 일치 (사람 책임).
+#   - MD_FILES 명단 자체 (SSOT 는 wiki_sync.md 의 ## MD_FILES 섹션;
+#     추가는 wiki_registry_sync 가 자동 append, 삭제는 사람).
 
 on:
   push:
@@ -53,31 +54,15 @@ jobs:
           COMMIT_MSG: "sync: mirror main → wiki (${{ github.sha }})"
         run: |
           set -euo pipefail
-          # MD_FILES는 wiki_sync.md의 ## Implementation 섹션과 정확히 일치해야 한다 (사람 책임).
-          MD_FILES=(
-            Home.md
-            task_principle.md
-            agent_skill_principle.md
-            workflow_principle.md
-            wiki_sync.md
-            spec_sync.md
-            forge_pr_review.md
-            wiki_e2e.md
-            ux_agent.md
-            test_agent.md
-            ci_trigger.md
-            Home.ko.md
-            task_principle.ko.md
-            agent_skill_principle.ko.md
-            workflow_principle.ko.md
-            wiki_sync.ko.md
-            spec_sync.ko.md
-            forge_pr_review.ko.md
-            wiki_e2e.ko.md
-            ux_agent.ko.md
-            test_agent.ko.md
-            ci_trigger.ko.md
+          # MD_FILES SSOT: source/wiki_sync.md 의 ## MD_FILES 섹션. 런타임에 파싱.
+          readarray -t MD_FILES < <(
+            awk '/^## MD_FILES/{flag=1; next} /^## /{flag=0} flag && /^- /' source/wiki_sync.md \
+              | grep -oE '[A-Za-z_][A-Za-z0-9_.]*\.md'
           )
+          if [ ${#MD_FILES[@]} -eq 0 ]; then
+            echo "::error::no entries parsed from source/wiki_sync.md ## MD_FILES"
+            exit 1
+          fi
 
           # 1) validate — source에 명단의 모든 파일이 존재해야 함.
           MISSING=()
