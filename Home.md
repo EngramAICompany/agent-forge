@@ -50,6 +50,17 @@ The same principles applied to tasks *outside* this repo. Three modules linked b
 - [test_agent](test_agent.md) — E2E script maintenance and execution.
 - [ci_trigger](ci_trigger.md) — Event routing and observation.
 
+## External task delegation example (silent-fail audit, composite)
+
+A Unix-pipe composite ([workflow_principle](workflow_principle.md)) — three atomic modules plus one composite, all parameterized on `project_src` so the spec set drops into any target project (e.g. a `nurse-schedule-v2`-style app).
+
+`silent_fail_detector ──(silent_fail_detected)──▶ log_gap_locator ──(log_gap_located)──▶ log_inserter ──(log_pr_opened)──▶ silent_fail_audit ──(silent_fail_resolved | silent_fail_stale)`
+
+- [silent_fail_detector](silent_fail_detector.md) — Detects per-scenario signature mismatch and `except: pass`-style swallows.
+- [log_gap_locator](log_gap_locator.md) — Locates `file:line` for log insertion; classifies mechanical vs. ambiguous.
+- [log_inserter](log_inserter.md) — Opens a PR with logs at mechanical locations; ambiguous → escalation.
+- [silent_fail_audit](silent_fail_audit.md) — Composite verdict per source SHA; aggregates the three primitives' emits.
+
 ## Topology
 
 ```
@@ -62,11 +73,29 @@ The same principles applied to tasks *outside* this repo. Three modules linked b
                             │ application
                             │
                             ▼
-                    external task delegation example
+                    external task delegation examples
                             │
               ux_agent ──(doc_updated)──▶ test_agent ──▶ ci_trigger
                  ▲                                       │
                  └─────────────── on fail ───────────────┘
+
+   ─── silent-fail audit (composite, portable to any target project) ───────────
+   silent_fail_detector ──(silent_fail_detected)──▶ log_gap_locator
+                                                          │
+                                                          ▼
+                                                    (log_gap_located)
+                                                          │
+                                                          ▼
+                                                     log_inserter
+                                                          │
+                                                          ▼
+                                                    (log_pr_opened)
+                                                          │
+                                                          ▼
+                                            silent_fail_audit (composite)
+                                                          │
+                                                          ▼
+                                      resolved | stale  per source SHA
 
    ─── self-constrained management loop (this repo manages itself) ─────────────
    ★ principles ──▶ task doc (spec)
