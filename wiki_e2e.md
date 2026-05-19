@@ -21,12 +21,16 @@ For every `MD_FILE` in [`wiki_sync.md`](wiki_sync.md), assert that the correspon
 ## Procedure
 
 ```
-1. parse MD_FILES from .github/workflows/wiki-sync.yml (single source of truth)
-2. P1 wiki file present:    [ -f wiki/$f ] ∀ f
-3. P2 wiki page renders:    curl -sIL --retry 2 <wiki_url>/${f%.md} == 200 ∀ f
-4. P3 link adapter applied: grep -rE '\]\([^)/:#]+\.md(#[^)]*)?\)' wiki/*.md == ∅
-5. P4 EN/KO pair complete:  for X.md with X.ko.md in MD_FILES, both pages 200 in P2
-6. P5 link integrity:       extract relative URLs from wiki/*.md; each resolves 200
+1. parse MD_FILES from wiki_sync.md ## MD_FILES (single SSOT; EN-only)
+2. P1 wiki file present:       [ -f wiki/$f ] ∀ f
+3. P2 wiki page renders:       curl -sIL --retry 2 <wiki_url>/${f%.md} == 200 ∀ f
+4. P3 .md link adapter applied: grep -rE '\]\([^)/:#]+\.md(#[^)]*)?\)' wiki/*.md == ∅
+5. P4 .ko.md link adapter applied: grep -rE '\]\([^)/:#]+\.ko(#[^)]*)?\)' wiki/*.md == ∅
+                                   — .ko.md siblings are not mirrored to the wiki; every
+                                     `](X.ko.md)` source link must have been rewritten to
+                                     an absolute github.com URL on main. A leftover `](X.ko)`
+                                     form would be a broken link on wiki.
+6. P5 link integrity:          extract relative URLs from wiki/*.md; each resolves 200
 7. report → $GITHUB_STEP_SUMMARY; exit 0 if all PASS else 1
 ```
 

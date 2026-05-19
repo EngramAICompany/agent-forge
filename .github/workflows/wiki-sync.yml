@@ -74,16 +74,22 @@ jobs:
             exit 1
           fi
 
-          # 2) overlay — source → wiki, with two target-platform link adapters:
-          #   (a) `.md` 확장자 제거: GitHub wiki 는 [text](Foo.md) 를 raw 파일로 라우팅하므로
+          # 2) overlay — source → wiki, with three target-platform link adapters (순서 중요):
+          #   (a) `.ko.md` 상대링크 → 절대 github.com URL (main 브랜치).
+          #       .ko.md 형제는 위키에 미러링하지 않는다(사이드바를 EN-only 로 유지).
+          #       페이지 상단의 [한국어](X.ko.md) 토글은 절대 URL 로 다시 써서 소스 리포에서 렌더된
+          #       마크다운으로 빠진다. 이 규칙은 (b) 보다 먼저 실행되어야 한다 — 그렇지 않으면
+          #       generic `.md`-strip 규칙이 먼저 `.md` 를 먹어버려 `](X.ko)` 가 남는다.
+          #   (b) `.md` 확장자 제거: GitHub wiki 는 [text](Foo.md) 를 raw 파일로 라우팅하므로
           #       [text](Foo) / [text](Foo#anchor) 로 다시 쓴다.
           #       외부 URL 은 group 이 '/' ':'를 포함하지 않아 매치 안 됨.
-          #   (b) `.github/` 상대경로 → 절대 github.com URL: 소스 뷰에서는 [x](.github/workflows/y.yml)
+          #   (c) `.github/` 상대경로 → 절대 github.com URL: 소스 뷰에서는 [x](.github/workflows/y.yml)
           #       이 동작하지만, 위키 베이스 URL 에서는 .github/ 서브트리가 없어 깨진다.
           #       절대 github.com URL 로 다시 쓰면 양쪽에서 동작.
           REPO="${{ github.repository }}"
           for f in "${MD_FILES[@]}"; do
             sed -E \
+              -e "s|\]\(([^)/:#]+)\.ko\.md(#[^)]*)?\)|](https://github.com/${REPO}/blob/main/\1.ko.md\2)|g" \
               -e 's|\]\(([^)/:#]+)\.md(#[^)]*)?\)|](\1\2)|g' \
               -e "s|\]\(\.github/([^)]+)\)|](https://github.com/${REPO}/blob/main/.github/\1)|g" \
               "source/$f" > "wiki/$f"

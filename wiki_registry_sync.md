@@ -2,29 +2,31 @@
 
 # wiki_registry_sync
 
-Self-referential forge module. Keeps [`wiki_sync.md`](wiki_sync.md) `## MD_FILES` (the single SSOT for what gets mirrored to the wiki) in sync with the repo root's actual `*.md` / `*.ko.md` set, after a fixed exclusion list. Append-only to the data section — never touches prose.
+Self-referential forge module. Keeps [`wiki_sync.md`](wiki_sync.md) `## MD_FILES` (the single SSOT for what gets mirrored to the wiki — **EN-only**) in sync with the repo root's canonical EN `*.md` set, after a fixed exclusion list. Append-only to the data section — never touches prose.
 
 ## Role
 
-For each `*.md` / `*.ko.md` in the repo root that should be wiki-published but is not yet listed in `wiki_sync.md ## MD_FILES`, append a single-line entry. Surface entries-without-files as escalations.
+For each canonical EN `*.md` in the repo root that should be wiki-published but is not yet listed in `wiki_sync.md ## MD_FILES`, append a single-line entry. Surface entries-without-files as escalations. `.ko.md` siblings are not registered — they stay on `main` and are reached from each EN wiki page via the absolute-URL link adapter in [`wiki_sync`](wiki_sync.md).
 
 ## Scope
 
-- **in-scope**: parsing `wiki_sync.md ## MD_FILES`; globbing repo root `*.md` / `*.ko.md`; applying a fixed exclusion list; appending the missing set; opening one PR per run on `wiki-registry-sync/auto-*`; emitting a single completion event.
-- **out-of-scope**: editing prose or any other section of `wiki_sync.md`; editing any other `.md`; creating new `.md` files; removing entries (deletion is human work, surfaced as escalation only); editing `.github/*` (the yaml and script parse this section at runtime — no further write needed); translation (→ [`ko_sync`](ko_sync.md)).
-- **on violation**: `## MD_FILES` section missing or unparseable → exit 1. Diff would touch any region outside the `## MD_FILES` bullet list → revert, exit 1. Entry exists without a corresponding file (`extra`) → escalate, do not delete.
+- **in-scope**: parsing `wiki_sync.md ## MD_FILES`; globbing repo root `*.md` (EN only — `*.ko.md` is excluded); applying a fixed exclusion list; appending the missing set; opening one PR per run on `wiki-registry-sync/auto-*`; emitting a single completion event.
+- **out-of-scope**: editing prose or any other section of `wiki_sync.md`; editing any other `.md`; creating new `.md` files; removing entries (deletion is human work, surfaced as escalation only); editing `.github/*` (the yaml and script parse this section at runtime — no further write needed); translation and `.ko.md` lifecycle (→ [`ko_sync`](ko_sync.md)); registering `.ko.md` siblings (the wiki is EN-only by [`wiki_sync`](wiki_sync.md) design).
+- **on violation**: `## MD_FILES` section missing or unparseable → exit 1. Diff would touch any region outside the `## MD_FILES` bullet list → revert, exit 1. Entry exists without a corresponding file (`extra`) → escalate, do not delete. Any `.ko.md` entry encountered in `## MD_FILES` (legacy or hand-added) → escalate, do not auto-remove (deletion is human work).
 
 ## Procedure
 
 ```
 inputs:
-    exclusion = { README.md, README.ko.md, CLAUDE.md, MEMORY.md }
+    exclusion = { README.md, CLAUDE.md, MEMORY.md, *.ko.md }
+                (*.ko.md is excluded categorically — wiki is EN-only;
+                 .ko.md lifecycle is owned by ko_sync.)
 
 current = parse(wiki_sync.md, "## MD_FILES")          # bullet entries
-present = (ls *.md, *.ko.md) \ exclusion
+present = (ls *.md) \ exclusion                       # EN-only after exclusion
 
 missing = present \ current
-extra   = current \ present
+extra   = current \ present                           # may include legacy .ko.md entries
 
 if extra ≠ ∅:
     escalate(extra)                                    # deletions: human work
@@ -34,7 +36,7 @@ if missing = ∅:
     exit 0
 
 # append-only edit
-for f in missing (sorted: EN before KO; group by base name):
+for f in missing (sorted: alphabetical):
     insert "- $f" at the end of the bullet list of wiki_sync.md ## MD_FILES
 
 verify_diff_scope(wiki_sync.md) ⊆ "## MD_FILES" bullet region else revert + exit 1
@@ -44,12 +46,10 @@ git commit -- wiki_sync.md
 gh pr create
     title: "registry: add <N> entries to MD_FILES"
     body:  ## Added entries
-           - <file>  (paired: yes/no)
+           - <file>
            (## Escalations: extra=[...]  if any)
 emit wiki_registry_sync_completed(sha, verdict=pr, pr_url)
 ```
-
-Pairing preference: when `X.md` and `X.ko.md` are both in `missing`, append in EN-before-KO order to match the established list ordering.
 
 ## Contract
 

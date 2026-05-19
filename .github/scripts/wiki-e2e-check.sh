@@ -62,18 +62,16 @@ if [ -n "$P3b" ]; then
   done <<< "$P3b"
 fi
 
-# P4 — EN/KO pair completeness (both pages got 200 in P2)
-for f in $MD_FILES; do
-  case "$f" in *.ko.md) continue ;; esac
-  ko="${f%.md}.ko.md"
-  echo "$MD_FILES" | grep -qx "$ko" || continue
-  en_code="${P2_CODE[$f]:-?}"
-  ko_code="${P2_CODE[$ko]:-?}"
-  if [ "$en_code" != 200 ] || [ "$ko_code" != 200 ]; then
-    P4_FAIL=$((P4_FAIL+1))
-    P4_DETAIL+=("$f($en_code) ↔ $ko($ko_code)")
-  fi
-done
+# P4 — .ko.md link adapter applied: no `](X.ko)` form left in wiki/*.md.
+# .ko.md siblings are not mirrored to the wiki; every source `](X.ko.md)` must
+# have been rewritten to an absolute github.com URL on main. A surviving `](X.ko)`
+# form is a broken intra-wiki link.
+P4_HITS=$(grep -rEn '\]\([^)/:#]+\.ko(#[^)]*)?\)' "$WIKI_DIR"/*.md 2>/dev/null || true)
+if [ -n "$P4_HITS" ]; then
+  while IFS= read -r line; do
+    [ -n "$line" ] && { P4_FAIL=$((P4_FAIL+1)); P4_DETAIL+=("$line"); }
+  done <<< "$P4_HITS"
+fi
 
 # P5 — internal link integrity (relative URLs in wiki copies resolve to 200)
 LINKS_FILE=$(mktemp)
@@ -116,8 +114,8 @@ MD_COUNT=$(echo "$MD_FILES" | wc -l)
   echo "|---|---|---|"
   echo "| P1 wiki file present | $(status $P1_FAIL) | $([ $P1_FAIL = 0 ] && echo "all $MD_COUNT files present" || join_first_n 5 "${P1_DETAIL[@]}") |"
   echo "| P2 wiki page renders | $(status $P2_FAIL) | $([ $P2_FAIL = 0 ] && echo "all $MD_COUNT pages 200 (after redirects)" || join_first_n 5 "${P2_DETAIL[@]}") |"
-  echo "| P3 link adapter applied | $(status $P3_FAIL) | $([ $P3_FAIL = 0 ] && echo "no \`.md\` in wiki link URLs" || echo "$P3_FAIL match(es)") |"
-  echo "| P4 EN/KO pair complete | $(status $P4_FAIL) | $([ $P4_FAIL = 0 ] && echo "every paired doc renders both sides" || join_first_n 5 "${P4_DETAIL[@]}") |"
+  echo "| P3 .md link adapter applied | $(status $P3_FAIL) | $([ $P3_FAIL = 0 ] && echo "no \`.md\` in wiki link URLs" || echo "$P3_FAIL match(es)") |"
+  echo "| P4 .ko.md link adapter applied | $(status $P4_FAIL) | $([ $P4_FAIL = 0 ] && echo "no \`](X.ko)\` form left in wiki/*.md" || echo "$P4_FAIL match(es)") |"
   echo "| P5 internal link integrity | $(status $P5_FAIL) | $([ $P5_FAIL = 0 ] && echo "all $LINK_COUNT unique relative links 200" || echo "$P5_FAIL / $LINK_COUNT broken") |"
 } >> "$GITHUB_STEP_SUMMARY"
 
@@ -129,7 +127,7 @@ if [ "$TOTAL" -gt 0 ]; then
     [ $P1_FAIL -gt 0 ] && { echo "**P1 — missing wiki files:**"; printf -- '- %s\n' "${P1_DETAIL[@]:0:20}"; }
     [ $P2_FAIL -gt 0 ] && { echo "**P2 — non-200 pages:**"; printf -- '- %s\n' "${P2_DETAIL[@]:0:20}"; }
     [ $P3_FAIL -gt 0 ] && { echo "**P3 — residual \`.md\` URLs:**"; printf -- '- %s\n' "${P3_DETAIL[@]:0:20}"; }
-    [ $P4_FAIL -gt 0 ] && { echo "**P4 — incomplete pairs:**"; printf -- '- %s\n' "${P4_DETAIL[@]:0:20}"; }
+    [ $P4_FAIL -gt 0 ] && { echo "**P4 — residual \`](X.ko)\` URLs:**"; printf -- '- %s\n' "${P4_DETAIL[@]:0:20}"; }
     [ $P5_FAIL -gt 0 ] && { echo "**P5 — broken links:**"; printf -- '- %s\n' "${P5_DETAIL[@]:0:20}"; }
   } >> "$GITHUB_STEP_SUMMARY"
 fi
